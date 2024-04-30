@@ -106,9 +106,9 @@ ax.set_title("Gradient tracking")
 
 ZZ_opt = -np.sum(R) / np.sum(Q)
 opt_cost = 0.5 * np.sum(Q) * ZZ_opt**2 + np.sum(R) * ZZ_opt
-# print(opt_cost)
-# print(cost[-2])
-# print(cost_gt[-2])
+print(opt_cost)
+print(cost[-2])
+print(cost_gt[-2])
 
 fig, ax = plt.subplots()
 ax.semilogy(np.arange(MAXITERS - 1), np.abs(cost[:-1] - opt_cost))
