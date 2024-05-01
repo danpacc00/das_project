@@ -1,5 +1,4 @@
 import argparse
-import sys
 
 import matplotlib.pyplot as plt
 import networkx as nx
@@ -37,7 +36,15 @@ def main():
     ]
 
     for graph_opt in graphs:
-        graph = graph_opt["fn"](args.nodes)
+        graph = (
+            graph_opt["fn"](args.nodes)
+            if graph_opt["name"] != "star"
+            else nx.star_graph(args.nodes - 1)
+        )
+
+        # graph = graph_opt["fn"](args.nodes)
+        # if graph_opt["name"] == "star":
+        #     print("graph", graph)
 
         cost_fn = QuadraticCost(args.nodes)
         gt = GradientTracking(cost_fn, max_iters=args.iters, alpha=1e-2)
@@ -45,22 +52,23 @@ def main():
         zz, cost, gradient_magnitude = gt.run(graph)
 
         if not args.no_plots:
-            _, ax = plt.subplots()
-            ax.plot(np.arange(zz.shape[0]), zz)
-            ax.grid()
-            ax.set_title(f"{graph_opt['name']} - Gradient tracking")
+            _, ax = plt.subplots(3, 1, figsize=(10, 10))
+            ax[0].plot(np.arange(zz.shape[0]), zz)
+            ax[0].grid()
+            ax[0].set_title(f"{graph_opt['name']} - Gradient tracking")
 
-            _, ax = plt.subplots()
-            ax.plot(np.arange(zz.shape[0] - 1), cost[:-1])
-            ax.grid()
-            ax.set_title(f"{graph_opt['name']} - Cost")
+            ax[1].plot(np.arange(zz.shape[0] - 1), cost[:-1])
+            ax[1].grid()
+            ax[1].set_title(f"{graph_opt['name']} - Cost")
 
-            _, ax = plt.subplots()
-            ax.semilogy(np.arange(zz.shape[0] - 1), gradient_magnitude[1:])
-            ax.grid()
-            ax.set_title(f"{graph_opt['name']} - Gradient magnitude")
+            ax[2].semilogy(np.arange(zz.shape[0] - 1), gradient_magnitude[1:])
+            ax[2].grid()
+            ax[2].set_title(f"{graph_opt['name']} - Gradient magnitude")
 
             plt.show()
+
+
+# Task 1.2
 
 
 if __name__ == "__main__":
