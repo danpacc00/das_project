@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import networkx as nx
 import numpy as np
 from gradient_tracking import GradientTracking
+from Dataset import create_labeled_dataset
 
 np.random.seed(0)
 NN = 10
@@ -67,8 +68,8 @@ def main():
 
             plt.show()
 
-
-# Task 1.2
+    # Task 1.2
+    labeled_dataset = create_labeled_dataset()
 
 
 if __name__ == "__main__":
