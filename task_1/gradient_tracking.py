@@ -28,13 +28,12 @@ class GradientTracking:
         AA += np.eye(nn) - np.diag(np.sum(AA, axis=0))
 
         zz = np.zeros((self.max_iters, nn, d))
+        zz[0, :, :] = np.array([9 + 0.1, 2 + 0.1, 1 + 0.1, 5 + 0.1, -(0.5**2) + 0.1])
         ss = np.zeros((self.max_iters, nn, d))
         for ii in range(nn):
             _, ss[0, ii, :] = self.cost_fn(ii, zz[0, ii, :])
 
         for kk in range(1, self.max_iters):
-            print(f"iter {kk}")
-
             for ii in range(nn):
                 N_ii = np.nonzero(Adj[ii])[0]
 
@@ -55,5 +54,11 @@ class GradientTracking:
 
                 ell_ii_gt, _ = self.cost_fn(ii, zz[kk, ii, :])
                 self.cost[kk] += ell_ii_gt
+
+            print(f"Iteration: #{kk}, Cost: {self.cost[kk]:.2f}, Gradient Magnitude: {self.gradient_magnitude[kk]:.2f}")
+
+            if self.gradient_magnitude[kk] < 1e-6:
+                print("Converged")
+                break
 
         return zz, self.cost, self.gradient_magnitude

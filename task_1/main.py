@@ -3,8 +3,10 @@ import argparse
 import matplotlib.pyplot as plt
 import networkx as nx
 import numpy as np
-from costs import LogisticRegressionCost, QuadraticCost
-from dataset import classify_points, create_labeled_dataset
+
+# from costs import LogisticRegressionCost, QuadraticCost
+from costs_fn import LogisticRegressionCost
+from dataset import classify_points, create_labeled_dataset, plot_results
 from gradient_tracking import GradientTracking
 
 np.random.seed(0)
@@ -57,20 +59,40 @@ def main():
     #         plt.show()
 
     # Task 1.2
-    labeled_dataset = create_labeled_dataset()
-    classify_points(labeled_dataset)
+    labeled_dataset = create_labeled_dataset(show_plot=False)
+    # classify_points(labeled_dataset)
 
     # Task 1.3
-    labeled_dataset = create_labeled_dataset(show_plot=False)
-
     # Split the dataset into NN groups
     labeled_dataset = np.array_split(labeled_dataset, NN)
 
     cost_fn = LogisticRegressionCost(labeled_dataset)
-    gt = GradientTracking(cost_fn, max_iters=args.iters, alpha=1e-2)
+    gt = GradientTracking(cost_fn, max_iters=args.iters, alpha=1e-4)
 
-    graph = nx.path_graph(NN)
+    graph = nx.cycle_graph(NN)
     zz, cost, gradient_magnitude = gt.run(graph, d=5)
+
+    if not args.no_plots:
+        _, ax = plt.subplots(3, 1, figsize=(10, 10))
+        ax[0].plot(np.arange(zz.shape[0]), zz[:, :, :])
+        ax[0].grid()
+        ax[0].set_title("Gradient tracking of the Logistic Regression Cost Function")
+        ax[0].set_xlabel("Iterations")
+        ax[0].set_ylabel("$\\theta$")
+
+        ax[1].plot(np.arange(zz.shape[0] - 1), cost[:-1])
+        ax[1].grid()
+        ax[1].set_title("Evolution of the Cost Function")
+        ax[1].set_xlabel("Iterations")
+        ax[1].set_ylabel("Cost")
+
+        ax[2].semilogy(np.arange(zz.shape[0] - 1), gradient_magnitude[1:])
+        ax[2].grid()
+        ax[2].set_title("Gradient magnitude")
+        ax[2].set_xlabel("Iterations")
+        ax[2].set_ylabel("Evolution of the Norm of the Gradient")
+
+        plot_results(labeled_dataset, zz[-1, 0, :])
 
 
 if __name__ == "__main__":

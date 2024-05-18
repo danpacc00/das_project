@@ -82,7 +82,7 @@ for kk in range(MAXITERS - 1):
             ZZ_gt[kk + 1, ii] += AA[ii, jj] * ZZ_gt[kk, jj]
             SS_gt[kk + 1, ii] += AA[ii, jj] * SS_gt[kk, jj]
 
-        ZZ_gt[kk + 1, ii] -= alpha * SS_gt[kk, ii]
+        ZZ_gt[kk + 1, ii] -= alpha * np.exp(-0.1 * kk) * SS_gt[kk, ii]
 
         # print(Q[ii])
         _, grad_ell_ii_new = quadratic_fn(ZZ_gt[kk + 1, ii], Q[ii], R[ii])

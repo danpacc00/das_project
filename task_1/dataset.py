@@ -36,7 +36,7 @@ def ellipse_equation(w, bias, x):
     return y_positive, y_negative
 
 
-def create_labeled_dataset():
+def create_labeled_dataset(show_plot=False):
     a = 9.0  # Stretch wrt x-axis
     b = 2.0  # Tilt wrt x-axis
     c = 1.0  # Coefficient for x^2. Controls the width of the ellipse
@@ -92,7 +92,9 @@ def create_labeled_dataset():
     plt.title("Dataset with Nonlinear Separating Function")
     plt.legend()
     plt.grid(True)
-    plt.show()
+
+    if show_plot:
+        plt.show()
 
     return labeled_dataset
 
@@ -142,7 +144,7 @@ def classify_points(dataset):
         callback=lambda x: intermediate_results.append(x),
     )
 
-    w, bias = result.x[:4], result.x[4]
+    print(f"first result: {intermediate_results[0]}")
 
     # Plot evolution of the cost function
     plt.figure(figsize=(8, 6))
@@ -161,6 +163,12 @@ def classify_points(dataset):
     plt.title("Evolution of the Norm of the Gradient")
     plt.grid(True)
     plt.show()
+
+    plot_results(dataset, result)
+
+
+def plot_results(dataset, theta):
+    w, bias = theta[:4], theta[4]
 
     # Plot the labeled dataset
     plt.figure(figsize=(8, 6))
