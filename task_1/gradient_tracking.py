@@ -11,7 +11,7 @@ class GradientTracking:
         self.cost = np.zeros(max_iters)
         self.gradient_magnitude = np.zeros(max_iters)
 
-    def run(self, graph):
+    def run(self, graph, d):
         nn = len(nx.nodes(graph))
         Adj = nx.adjacency_matrix(graph).toarray()
 
@@ -27,10 +27,10 @@ class GradientTracking:
 
         AA += np.eye(nn) - np.diag(np.sum(AA, axis=0))
 
-        zz = np.zeros((self.max_iters, nn))
-        ss = np.zeros((self.max_iters, nn))
+        zz = np.zeros((self.max_iters, nn, d))
+        ss = np.zeros((self.max_iters, nn, d))
         for ii in range(nn):
-            _, ss[0, ii] = self.cost_fn(ii, zz[0, ii])
+            _, ss[0, ii, :] = self.cost_fn(ii, zz[0, ii, :])
 
         for kk in range(1, self.max_iters):
             print(f"iter {kk}")
@@ -38,22 +38,22 @@ class GradientTracking:
             for ii in range(nn):
                 N_ii = np.nonzero(Adj[ii])[0]
 
-                zz[kk, ii] += AA[ii, ii] * zz[kk - 1, ii]
-                ss[kk, ii] += AA[ii, ii] * ss[kk - 1, ii]
+                zz[kk, ii, :] += AA[ii, ii] * zz[kk - 1, ii, :]
+                ss[kk, ii, :] += AA[ii, ii] * ss[kk - 1, ii, :]
                 for jj in N_ii:
-                    zz[kk, ii] += AA[ii, jj] * zz[kk - 1, jj]
-                    ss[kk, ii] += AA[ii, jj] * ss[kk - 1, jj]
+                    zz[kk, ii, :] += AA[ii, jj] * zz[kk - 1, jj, :]
+                    ss[kk, ii, :] += AA[ii, jj] * ss[kk - 1, jj, :]
 
-                zz[kk, ii] -= self.alpha * ss[kk - 1, ii]
+                zz[kk, ii, :] -= self.alpha * ss[kk - 1, ii, :]
 
-                _, grad_ell_ii_new = self.cost_fn(ii, zz[kk, ii])
+                _, grad_ell_ii_new = self.cost_fn(ii, zz[kk, ii, :])
 
                 self.gradient_magnitude[kk] += np.linalg.norm(grad_ell_ii_new)
 
-                _, grad_ell_ii_old = self.cost_fn(ii, zz[kk - 1, ii])
-                ss[kk, ii] += grad_ell_ii_new - grad_ell_ii_old
+                _, grad_ell_ii_old = self.cost_fn(ii, zz[kk - 1, ii, :])
+                ss[kk, ii, :] += grad_ell_ii_new - grad_ell_ii_old
 
-                ell_ii_gt, _ = self.cost_fn(ii, zz[kk, ii])
+                ell_ii_gt, _ = self.cost_fn(ii, zz[kk, ii, :])
                 self.cost[kk] += ell_ii_gt
 
         return zz, self.cost, self.gradient_magnitude
