@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import networkx as nx
 import numpy as np
 from gradient_tracking import GradientTracking
-from Dataset import create_labeled_dataset
+from Dataset import create_labeled_dataset, logistic_regression_cost_fn
 
 np.random.seed(0)
 NN = 10
@@ -70,6 +70,10 @@ def main():
 
     # Task 1.2
     labeled_dataset = create_labeled_dataset()
+
+    classifier = GradientTracking(
+        logistic_regression_cost_fn, max_iters=args.iters, alpha=1e-2
+    )
 
 
 if __name__ == "__main__":

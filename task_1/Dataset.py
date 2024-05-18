@@ -29,8 +29,6 @@ def phi(x):
 
 
 def separating_function(x):
-    print("w shape", w.shape)
-    print("phi shape", phi(x).shape)
     return np.dot(w, phi(x)) + bias
 
 
@@ -101,7 +99,7 @@ def create_labeled_dataset():
 
 def logistic_regression_cost_fn(x):
     label = x[-1]
-    return np.log(1 + np.exp(-label * separating_function(x)))
+    return (np.log(1 + np.exp(-label * separating_function(x))),)
 
 
 def classify_points():
@@ -109,3 +107,5 @@ def classify_points():
 
 
 classify_points()
+
+create_labeled_dataset()
