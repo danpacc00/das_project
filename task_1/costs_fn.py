@@ -1,5 +1,5 @@
 import numpy as np
-from dataset import cost, cost_gradient
+from dataset_line import cost, cost_gradient
 
 
 class QuadraticCost:

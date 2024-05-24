@@ -6,7 +6,7 @@ import numpy as np
 
 # from costs import LogisticRegressionCost, QuadraticCost
 from costs_fn import LogisticRegressionCost
-from dataset import classify_points, create_labeled_dataset, plot_results
+from dataset_line import classify_points, create_labeled_dataset, plot_results
 from gradient_tracking import GradientTracking
 
 np.random.seed(0)
@@ -64,33 +64,39 @@ def main():
 
     # Task 1.3
     # Split the dataset into NN groups
-    labeled_dataset = np.array_split(labeled_dataset, NN)
+    datasets = np.array_split(labeled_dataset, NN)
 
-    cost_fn = LogisticRegressionCost(labeled_dataset)
-    gt = GradientTracking(cost_fn, max_iters=args.iters, alpha=1e-4)
+    cost_fn = LogisticRegressionCost(datasets)
+    gt = GradientTracking(cost_fn, max_iters=args.iters, alpha=1e-3)
 
-    graph = nx.cycle_graph(NN)
-    zz, cost, gradient_magnitude = gt.run(graph, d=5)
+    graph = nx.complete_graph(NN)
+    zz, cost, gradient_magnitude = gt.run(graph, d=2)
 
     if not args.no_plots:
-        _, ax = plt.subplots(3, 1, figsize=(10, 10))
-        ax[0].plot(np.arange(zz.shape[0]), zz[:, :, :])
+        _, ax = plt.subplots(4, 1, figsize=(10, 10))
+        ax[0].plot(np.arange(zz.shape[0]), zz[:, :, 0])
         ax[0].grid()
         ax[0].set_title("Gradient tracking of the Logistic Regression Cost Function")
         ax[0].set_xlabel("Iterations")
-        ax[0].set_ylabel("$\\theta$")
+        ax[0].set_ylabel("$\\theta[0]$")
 
-        ax[1].plot(np.arange(zz.shape[0] - 1), cost[:-1])
+        ax[1].plot(np.arange(zz.shape[0]), zz[:, :, 1])
         ax[1].grid()
-        ax[1].set_title("Evolution of the Cost Function")
+        ax[1].set_title("Gradient tracking of the Logistic Regression Cost Function")
         ax[1].set_xlabel("Iterations")
-        ax[1].set_ylabel("Cost")
+        ax[1].set_ylabel("$\\theta[1]$")
 
-        ax[2].semilogy(np.arange(zz.shape[0] - 1), gradient_magnitude[1:])
+        ax[2].plot(np.arange(zz.shape[0] - 1), cost[:-1])
         ax[2].grid()
-        ax[2].set_title("Gradient magnitude")
+        ax[2].set_title("Evolution of the Cost Function")
         ax[2].set_xlabel("Iterations")
-        ax[2].set_ylabel("Evolution of the Norm of the Gradient")
+        ax[2].set_ylabel("Cost")
+
+        ax[3].semilogy(np.arange(zz.shape[0] - 1), gradient_magnitude[1:])
+        ax[3].grid()
+        ax[3].set_title("Gradient magnitude")
+        ax[3].set_xlabel("Iterations")
+        ax[3].set_ylabel("Evolution of the Norm of the Gradient")
 
         plot_results(labeled_dataset, zz[-1, 0, :])
 

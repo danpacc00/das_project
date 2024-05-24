@@ -3,7 +3,7 @@ import numpy as np
 from scipy.optimize import minimize
 
 # Step 1: Generate the dataset
-M = 2000  # Number of points
+M = 1000  # Number of points
 d = 2  # Dimension of data
 q = 1  # Dimension of feature space (after transformation)
 
@@ -87,13 +87,12 @@ def create_labeled_dataset(show_plot=False):
             labeled_dataset[i] = np.array([D[i, 0], D[i, 1], -1])
             plt.scatter(D[i, 0], D[i, 1], color="red")
 
-    plt.xlabel("Feature 1")
-    plt.ylabel("Feature 2")
-    plt.title("Dataset with Nonlinear Separating Function")
-    plt.legend()
-    plt.grid(True)
-
     if show_plot:
+        plt.xlabel("Feature 1")
+        plt.ylabel("Feature 2")
+        plt.title("Dataset with Nonlinear Separating Function")
+        plt.legend()
+        plt.grid(True)
         plt.show()
 
     return labeled_dataset
@@ -164,7 +163,7 @@ def classify_points(dataset):
     plt.grid(True)
     plt.show()
 
-    plot_results(dataset, result)
+    plot_results(dataset, result.x)
 
 
 def plot_results(dataset, theta):
