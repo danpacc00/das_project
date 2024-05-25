@@ -1,0 +1,2 @@
+int64 warden_id
+geometry_msgs/Pose pose

@@ -3,12 +3,12 @@ import argparse
 import matplotlib.pyplot as plt
 import networkx as nx
 import numpy as np
-import phi
-from aggregative_tracking import AggregativeTracking
-from costs_fn import SurveillanceCost
-from functions import animation
+import ros.src.surveillance.surveillance.phi as phi
+from ros.src.surveillance.surveillance.aggregative_tracking import AggregativeTracking
+from ros.src.surveillance.surveillance.costs_fn import SurveillanceCost
+from ros.src.surveillance.surveillance.functions import animation
 
-# np.random.seed(0)
+np.random.seed(0)
 
 
 def main():
@@ -22,11 +22,11 @@ def main():
 
     targets = np.random.rand(args.nodes, 2) * 10 - 5
 
-    cost = SurveillanceCost(targets, tradeoff=1.0)
+    cost = SurveillanceCost(tradeoff=1.0)
     algo = AggregativeTracking(cost, phi.Identity(), max_iters=args.iters, alpha=1e-2)
 
     graph = nx.path_graph(args.nodes)
-    zz, cost, gradient_magnitude, kk = algo.run(graph, d=2)
+    zz, cost, gradient_magnitude, kk = algo.run(graph, targets, d=2)
 
     if not args.no_plots:
         _, ax = plt.subplots(3, 1, figsize=(10, 10))
