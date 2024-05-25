@@ -3,7 +3,7 @@ import numpy as np
 from scipy.optimize import minimize
 
 # Step 1: Generate the dataset
-M = 1000  # Number of points
+M = 500  # Number of points
 d = 2  # Dimension of data
 q = 1  # Dimension of feature space (after transformation)
 
@@ -166,7 +166,11 @@ def classify_points(dataset):
     plot_results(dataset, result.x)
 
 
-def plot_results(dataset, theta):
+def plot_results(dataset, theta, title):
+    print(
+        f"Parameters: a = {theta[0]:.2f}, b = {theta[1]:.2f}, c = {theta[2]:.2f}, d = {theta[3]:.2f}, bias = {theta[4]:.2f}, e = {np.sqrt(-theta[4]):.2f}"
+    )
+
     w, bias = theta[:4], theta[4]
 
     # Plot the labeled dataset
@@ -188,7 +192,21 @@ def plot_results(dataset, theta):
     plt.plot(x_1, y_line_neg, color="green", linestyle="--")
     plt.xlabel("Feature 1")
     plt.ylabel("Feature 2")
-    plt.title("Dataset with Nonlinear Separating Function")
+    plt.title(title)
     plt.legend()
     plt.grid(True)
     plt.show()
+
+
+def classification_error(dataset, theta):
+    w, bias = theta[:4], theta[4]
+
+    error = 0
+    for i in range(len(dataset)):
+        x = dataset[i, :2]
+        p = dataset[i, 2]
+
+        if p * separating_function(w, bias, x) < 0:
+            error += 1
+
+    return error / len(dataset)

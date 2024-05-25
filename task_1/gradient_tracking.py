@@ -11,7 +11,7 @@ class GradientTracking:
         self.cost = np.zeros(max_iters)
         self.gradient_magnitude = np.zeros(max_iters)
 
-    def run(self, graph, d):
+    def run(self, graph, d, zz0):
         nn = len(nx.nodes(graph))
         Adj = nx.adjacency_matrix(graph).toarray()
 
@@ -28,7 +28,9 @@ class GradientTracking:
         AA += np.eye(nn) - np.diag(np.sum(AA, axis=0))
 
         zz = np.zeros((self.max_iters, nn, d))
-        zz[0, :, :] = np.random.uniform(size=(nn, d))
+        # zz[0, :, :] = np.random.uniform(size=(nn, d))
+        # zz[0, :, :] = np.array([9, 2, 1, 5, 0.5]) + np.array([0.1, 0.1, 0.1, 0.1, 0.1])
+        zz[0, :, :] = zz0
         ss = np.zeros((self.max_iters, nn, d))
         for ii in range(nn):
             _, ss[0, ii, :] = self.cost_fn(ii, zz[0, ii, :])
@@ -57,8 +59,14 @@ class GradientTracking:
 
             print(f"Iteration: #{kk}, Cost: {self.cost[kk]:.2f}, Gradient Magnitude: {self.gradient_magnitude[kk]:.2f}")
 
-            if self.gradient_magnitude[kk] < 1e-6:
-                print("Converged")
-                break
+            # if self.gradient_magnitude[kk] < 1e-6:
+            #     print("Converged")
+            #     break
 
-        return zz, self.cost, self.gradient_magnitude
+            # Take the gradient magnitude from the last 10 iterations and check if it's not changing a lot, then stop
+            if kk > 10 and np.std(self.gradient_magnitude[kk - 10 : kk]) < 1e-2:
+                print("Converged")
+
+                return zz[:kk, :, :], self.cost[:kk], self.gradient_magnitude[:kk]
+
+        return zz[:kk, :, :], self.cost[:kk], self.gradient_magnitude[:kk]

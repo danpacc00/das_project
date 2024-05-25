@@ -1,8 +1,3 @@
-#
-# Animations script
-# Lorenzo Pichierri
-# Bologna, 08/04/2024
-#
 import matplotlib.colors as mcolors
 import matplotlib.pyplot as plt
 import numpy as np
@@ -49,22 +44,46 @@ def error_plot(XX, NN, n_x, Adj, distances, horizon):
     plt.grid()
 
 
-def animation(XX, NN, n_x, horizon, Adj):
+def animation(XX, horizon, Adj, targets):
+    NN = XX.shape[1]
+
     for tt in range(len(horizon)):
         # plot trajectories
         plt.plot(
-            XX[0 : n_x * NN : n_x].T,
-            XX[1 : n_x * NN : n_x].T,
+            XX[:, :, 0],
+            XX[:, :, 1],
             color=gray_O4S,
             linestyle="dashed",
             alpha=0.5,
         )
 
+        # plot targets
+        for ii in range(targets.shape[0]):
+            plt.plot(
+                targets[ii, 0],
+                targets[ii, 1],
+                marker="x",
+                markersize=15,
+                fillstyle="full",
+                color=blue_O4S,
+            )
+
         # plot formation
-        xx_tt = XX[:, tt].T
+        xx_tt = XX[tt, :, :]
+
+        # add thebarycenter as a marker
+        barycenter = np.mean(xx_tt, axis=0)
+        plt.plot(
+            barycenter[0],
+            barycenter[1],
+            marker="o",
+            markersize=15,
+            fillstyle="full",
+            color=blue_O4S,
+        )
+
         for ii in range(NN):
-            index_ii = ii * n_x + np.arange(n_x)
-            p_prev = xx_tt[index_ii]
+            p_prev = xx_tt[ii]
 
             plt.plot(
                 p_prev[0],
@@ -77,8 +96,7 @@ def animation(XX, NN, n_x, horizon, Adj):
 
             for jj in range(NN):
                 if Adj[ii, jj] & (jj > ii):
-                    index_jj = (jj % NN) * n_x + np.arange(n_x)
-                    p_curr = xx_tt[index_jj]
+                    p_curr = xx_tt[jj]
                     plt.plot(
                         [p_prev[0], p_curr[0]],
                         [p_prev[1], p_curr[1]],
