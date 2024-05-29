@@ -163,7 +163,7 @@ def classify_points(dataset):
     plt.grid(True)
     plt.show()
 
-    plot_results(dataset, result.x)
+    plot_results(dataset, result.x, "Parameters found by centrallized gradient")
 
 
 def plot_results(dataset, theta, title):

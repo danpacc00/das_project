@@ -36,7 +36,7 @@ def main():
         cost_fn = QuadraticCost(args.nodes, d=1)
         gt = GradientTracking(cost_fn, max_iters=args.iters, alpha=1e-2)
 
-        zz, cost, gradient_magnitude = gt.run(graph, d=1)
+        zz, cost, gradient_magnitude = gt.run(graph, d=1, zz0=np.random.uniform(-5, 5, size=(args.nodes, 1)))
 
         if not args.no_plots:
             _, ax = plt.subplots(3, 1, figsize=(10, 10))
@@ -76,7 +76,9 @@ def main():
 
     graph = nx.complete_graph(NN)
 
-    zz0 = np.zeros(dimension)
+    # zz0 = np.zeros(dimension)
+    zz0 = np.array([9, 2, 1, 5, 0.5]) + np.array([0.1, 0.1, 0.1, 0.1, 0.1])
+
     zz, cost, gradient_magnitude = gt.run(graph, d=dimension, zz0=zz0)
     print("Classification error:", classification_error(labeled_dataset, zz[-1, 0, :]))
 
