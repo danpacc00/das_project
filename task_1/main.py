@@ -76,8 +76,8 @@ def main():
 
     graph = nx.complete_graph(NN)
 
-    # zz0 = np.zeros(dimension)
-    zz0 = np.array([9, 2, 1, 5, 0.5]) + np.array([0.1, 0.1, 0.1, 0.1, 0.1])
+    zz0 = np.zeros(dimension)
+    # zz0 = np.array([9, 2, 1, 5, 0.5]) + np.array([0.1, 0.1, 0.1, 0.1, 0.1]) #Perturbare random con magnitude abbastanza importante, anche 50/60%
 
     zz, cost, gradient_magnitude = gt.run(graph, d=dimension, zz0=zz0)
     print("Classification error:", classification_error(labeled_dataset, zz[-1, 0, :]))
