@@ -19,7 +19,9 @@ class Warden(Node):
         )
 
         self.id = self.get_parameter("id").value
-        self.neighbors = self.get_parameter("neighbors").value
+        self.weights = self.get_parameter("weights").value
+        neighbors = self.get_parameter("neighbors").value
+        self.neighbors = {neighbor: weight for neighbor, weight in zip(neighbors, self.weights)}
         self.target_position = self.get_parameter("target").value
         self.initial_pose = self.get_parameter("initial_pose").value
         self.timer_period = self.get_parameter("timer_period").value or DEFAULT_TIMER_PERIOD
