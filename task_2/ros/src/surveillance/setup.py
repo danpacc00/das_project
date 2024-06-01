@@ -1,5 +1,6 @@
-from setuptools import find_packages, setup
 from glob import glob
+
+from setuptools import find_packages, setup
 
 package_name = "surveillance"
 
@@ -23,6 +24,9 @@ setup(
     license="MIT",
     tests_require=["pytest"],
     entry_points={
-        "console_scripts": ["warden = surveillance.warden:main"],
+        "console_scripts": [
+            "warden = surveillance.warden:main",
+            "plotter = surveillance.plotter:main",
+        ],
     },
 )
