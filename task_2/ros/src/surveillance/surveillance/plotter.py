@@ -63,7 +63,7 @@ class Plotter(Node):
         self._info(f"Iteration: #{kk}, Cost: {self._cost[kk]:.2f}, Gradient Magnitude: {self._grad[kk]:.2f}")
 
         self._info("All neighbors have responded. Checking convergency...")
-        if kk > 10 and np.std(self._grad[kk - 10 : kk]) < 1e-4 or kk > 100:
+        if kk > 10 and np.std(self._grad[kk - 10 : kk]) < 1e-4 or kk > 150:
             self._info("Convergency reached. Stopping...")
             self._timer.destroy()
 

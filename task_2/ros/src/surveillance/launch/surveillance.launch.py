@@ -6,13 +6,17 @@ from launch_ros.actions import Node
 N = 4  # Number of nodes (they represent the agents in this example)
 G = nx.path_graph(N)  # Create a graph
 
-initial_pose = np.random.rand(N, 2) * 10 - 5
+# initial_pose = np.random.rand(N, 2) * 10 - 5
+initial_pose = np.zeros((N, 2))
 
 Adj = nx.adjacency_matrix(G).toarray()
 
-targets = np.random.rand(N, 2) * 10 - 5
+# targets = np.random.rand(N, 2) * 10 - 5
+targets = np.array(
+    [[0.48813504, 2.15189366], [1.02763376, 0.44883183], [-0.76345201, 1.45894113], [-0.62412789, 3.91773001]]
+)
 
-timer_period = 0.1
+timer_period = 0.01
 
 
 def generate_launch_description():

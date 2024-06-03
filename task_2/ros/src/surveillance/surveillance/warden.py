@@ -2,7 +2,6 @@ import sys
 
 import numpy as np
 import rclpy
-import wandb
 from geometry_msgs.msg import Pose
 from message.msg import NodeData, PlotterData
 from rclpy.node import Node
@@ -102,7 +101,6 @@ class Warden(Node):
         msg.vv = [float(self._vv[self._simtime][self.id][0]), float(self._vv[self._simtime][self.id][1])]
         self._publisher.publish(msg)
         self._info("Published updated data")
-        # wandb.log({"cost": cost, "grad": grad, "zz": self._zz[self._simtime], "id": self.id})
 
         data = PlotterData()
         data.warden_id = self.id
@@ -124,12 +122,13 @@ class Warden(Node):
 
         self._zz.append(self._zz[kk - 1] - self.alpha * (li_nabla_1 + self._vv[kk - 1][ii] + phi_grad))
 
-        self._ss[kk][ii] += self._phi_fn(self._zz[kk])[0] - self._phi_fn(self._zz[kk - 1])[0]
-        self._vv[kk][ii] += self._phi_fn(self._zz[kk])[1] - self._phi_fn(self._zz[kk - 1])[1]
+        self._ss[kk][ii] = (
+            self.weights[ii] * self._ss[kk - 1][ii] + self._phi_fn(self._zz[kk])[0] - self._phi_fn(self._zz[kk - 1])[0]
+        )
+        self._vv[kk][ii] = (
+            self.weights[ii] * self._vv[kk - 1][ii] + self._phi_fn(self._zz[kk])[1] - self._phi_fn(self._zz[kk - 1])[1]
+        )
 
-        self._info(f"Updating from self with weight {self.weights[ii]}")
-        self._ss[kk][ii] += self.weights[ii] * self._ss[kk - 1][ii]
-        self._vv[kk][ii] += self.weights[ii] * self._vv[kk - 1][ii]
         for jj in self.neighbors:
             weight = self.weights[jj]
             self._info(f"Updating from neighbor {jj} with weight {weight}")
@@ -157,8 +156,8 @@ class Warden(Node):
 
 
 def main(args=None):
+    np.random.seed(0)
     rclpy.init(args=args)
-    # wandb.init(project="surveillance")
 
     try:
         warden = Warden()
@@ -169,7 +168,6 @@ def main(args=None):
         print("Exception in warden:", file=sys.stderr)
         raise
     finally:
-        # wandb.finish()
         rclpy.shutdown()
 
 
