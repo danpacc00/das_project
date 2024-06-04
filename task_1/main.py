@@ -44,7 +44,7 @@ def main():
             ax[0].grid()
             ax[0].set_title(f"{graph_opt['name']} - Gradient tracking")
 
-            ax[1].plot(np.arange(zz.shape[0] - 1), cost[:-1])
+            ax[1].semilogy(np.arange(zz.shape[0] - 1), cost[:-1])
             ax[1].grid()
             ax[1].set_title(f"{graph_opt['name']} - Cost")
 

@@ -11,3 +11,11 @@ class SurveillanceCost:
         nabla_2 = 2 * (zz - sigma)
 
         return li, nabla_1, nabla_2
+
+
+# class CorridorCost:
+#     def __init__(self, tradeoff):
+#         self.tradeoff = tradeoff
+
+#     def __call__(self, target, corridor, zz, sigma):
+#         return li, nabla_1, nabla_2
