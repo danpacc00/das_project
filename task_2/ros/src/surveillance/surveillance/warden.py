@@ -35,13 +35,13 @@ class Warden(Node):
         self.target.position.x = self.target_position[0]
         self.target.position.y = self.target_position[1]
 
-        self._info(
+        self._debug(
             f"Starting warden {self.id} at position x = {self.pose.position.x}, y = {self.pose.position.y} with target x = {self.target.position.x}, y = {self.target.position.y}"
         )
 
         self._subs = {}
         for neighbor in self.neighbors:
-            self._info(f"Subscribing to neighbor {neighbor}")
+            self._debug(f"Subscribing to neighbor {neighbor}")
             self._subs[neighbor] = self.create_subscription(
                 NodeData, f"/warden_{neighbor}", self._neighbor_callback, 10
             )
@@ -54,53 +54,53 @@ class Warden(Node):
         self._phi_fn = Identity()
         self._cost_fn = SurveillanceCost(tradeoff=1.0)
         self._zz = [self.initial_pose]
-        self._ss = [{jj: np.zeros(2) for jj in self.neighbors}]
-        self._vv = [{jj: np.zeros(2) for jj in self.neighbors}]
+        self._ss = {jj: [np.zeros(2)] for jj in self.neighbors}
+        self._vv = {jj: [np.zeros(2)] for jj in self.neighbors}
 
-        self._ss[self._simtime][self.id] = self._phi_fn(self._zz[self._simtime])[0]
-        self._vv[self._simtime][self.id] = self._cost_fn(
-            self.target_position, self._zz[self._simtime], self._ss[self._simtime][self.id]
-        )[2]
+        self._ss[self.id] = [self._phi_fn(self._zz[self._simtime])[0]]
+        self._vv[self.id] = [
+            self._cost_fn(self.target_position, self._zz[self._simtime], self._ss[self.id][self._simtime])[2]
+        ]
 
     def _neighbor_callback(self, msg):
         neighbor_id = msg.warden_id
         ss = msg.ss
         vv = msg.vv
+        time = msg.time
 
-        if self._simtime >= len(self._ss):
-            self._ss.append({})
-            self._vv.append({})
-
-        self._ss[self._simtime][neighbor_id] = np.array(ss)
-        self._vv[self._simtime][neighbor_id] = np.array(vv)
-        self._info(f"Received data from neighbor {neighbor_id}")
+        self._ss[neighbor_id].append(np.array(ss))
+        self._vv[neighbor_id].append(np.array(vv))
+        self._info(f"Received data from neighbor {neighbor_id} for time {time}: ss = {ss}, vv = {vv}")
 
     def _timer_callback(self):
         msg = NodeData()
         msg.warden_id = self.id
+        msg.time = self._simtime
 
         if self._simtime == 0:
-            msg.ss = [float(self._ss[self._simtime][self.id][0]), float(self._ss[self._simtime][self.id][1])]
-            msg.vv = [float(self._vv[self._simtime][self.id][0]), float(self._vv[self._simtime][self.id][1])]
+            msg.ss = [self._ss[self.id][self._simtime][0], self._ss[self.id][self._simtime][1]]
+            msg.vv = [self._vv[self.id][self._simtime][0], self._vv[self.id][self._simtime][1]]
+            self._info(f"kk = 0, ss = {self._ss[self.id][0]}, vv = {self._vv[self.id][0]}")
             self._publisher.publish(msg)
-            self._info("Published initial data")
+            self._debug("Published initial data")
             self._simtime += 1
             return
 
-        if self._simtime >= len(self._ss):
-            return
-
-        all_received = all(neighbor_id in self._ss[self._simtime] for neighbor_id in self.neighbors)
+        all_received = all(len(self._ss[neighbor_id]) > self._simtime for neighbor_id in self.neighbors)
         if not all_received:
-            self._info("Waiting for all neighbors to respond...")
+            self._debug("Waiting for all neighbors to respond...")
             return
 
-        self._info("All neighbors have responded. Updating pose...")
+        self._debug(f"All neighbors have responded. Updating pose for time {self._simtime}...")
         cost, grad = self._update()
-        msg.ss = [float(self._ss[self._simtime][self.id][0]), float(self._ss[self._simtime][self.id][1])]
-        msg.vv = [float(self._vv[self._simtime][self.id][0]), float(self._vv[self._simtime][self.id][1])]
+        msg.ss = [self._ss[self.id][self._simtime][0], self._ss[self.id][self._simtime][1]]
+        msg.vv = [self._vv[self.id][self._simtime][0], self._vv[self.id][self._simtime][1]]
         self._publisher.publish(msg)
-        self._info("Published updated data")
+        if self.id == 0 and self._simtime < 150:
+            self._debug(f"Iteration: {self._simtime}, cost = {cost:.2f}, grad = {grad:.2f}")
+
+        if self._simtime > 10:
+            sys.exit(0)
 
         data = PlotterData()
         data.warden_id = self.id
@@ -108,51 +108,61 @@ class Warden(Node):
         data.cost = cost
         data.grad = grad
         self._plotter_pub.publish(data)
-        self._info("Published data for plotter")
+        self._debug("Published data for plotter")
 
         self._simtime += 1
 
     def _update(self):
-        self._info("Updating...")
+        self._debug("Updating...")
         kk = self._simtime
         ii = self.id
 
-        li_nabla_1 = self._cost_fn(self.target_position, self._zz[kk - 1], self._ss[kk - 1][ii])[1]
+        self._info(f"target = {self.target_position}, zz = {self._zz[kk - 1]}, ss = {self._ss[ii][kk - 1]}")
+
+        li_nabla_1 = self._cost_fn(self.target_position, self._zz[kk - 1], self._ss[ii][kk - 1])[1]
         _, phi_grad = self._phi_fn(self._zz[kk - 1])
 
-        self._zz.append(self._zz[kk - 1] - self.alpha * (li_nabla_1 + self._vv[kk - 1][ii] + phi_grad))
+        self._zz.append(self._zz[kk - 1] - self.alpha * (li_nabla_1 + self._vv[ii][kk - 1] + phi_grad))
 
-        self._ss[kk][ii] = (
-            self.weights[ii] * self._ss[kk - 1][ii] + self._phi_fn(self._zz[kk])[0] - self._phi_fn(self._zz[kk - 1])[0]
+        self._ss[ii].append(self._phi_fn(self._zz[kk])[0] - self._phi_fn(self._zz[kk - 1])[0])
+        self._vv[ii].append(
+            self.weights[ii] * self._vv[ii][kk - 1] + self._phi_fn(self._zz[kk])[1] - self._phi_fn(self._zz[kk - 1])[1]
         )
-        self._vv[kk][ii] = (
-            self.weights[ii] * self._vv[kk - 1][ii] + self._phi_fn(self._zz[kk])[1] - self._phi_fn(self._zz[kk - 1])[1]
+        self._info(
+            f"kk = {kk}, ss = {self._ss[ii][kk]}, vv = {self._vv[ii][kk]}, li_nabla_1 = {li_nabla_1}, phi_grad = {phi_grad}"
         )
+
+        # self._ss[ii][kk] += self.weights[ii] * self._ss[ii][kk - 1]
+        # self._vv[ii][kk] += self.weights[ii] * self._vv[ii][kk - 1]
 
         for jj in self.neighbors:
             weight = self.weights[jj]
-            self._info(f"Updating from neighbor {jj} with weight {weight}")
-            self._ss[kk][ii] += weight * self._ss[kk - 1][jj]
-            self._vv[kk][ii] += weight * self._vv[kk - 1][jj]
+            self._ss[ii][kk][:] += weight * self._ss[jj][kk - 1][:]
+            self._vv[ii][kk][:] += weight * self._vv[jj][kk - 1][:]
 
-        cost = self._cost_fn(self.target_position, self._zz[kk], self._ss[kk][ii])[0]
-        total_grad = self._cost_fn(self.target_position, self._zz[kk], self._ss[kk][ii])[1:]
+        cost = self._cost_fn(self.target_position, self._zz[kk], self._ss[ii][kk])[0]
+        total_grad = self._cost_fn(self.target_position, self._zz[kk], self._ss[ii][kk])[1:]
         return cost, np.linalg.norm(total_grad)
 
     def _debug(self, msg):
-        self.get_logger().debug(f"[{self.id}] {msg}")
+        if self.id == 0:
+            self.get_logger().debug(f"[{self.id}] {msg}")
 
     def _info(self, msg):
-        self.get_logger().info(f"[{self.id}] {msg}")
+        if self.id == 0 or self.id == 1:
+            self.get_logger().info(f"[{self.id}] {msg}")
 
     def _warn(self, msg):
-        self.get_logger().warn(f"[{self.id}] {msg}")
+        if self.id == 0:
+            self.get_logger().warn(f"[{self.id}] {msg}")
 
     def _error(self, msg):
-        self.get_logger().error(f"[{self.id}] {msg}")
+        if self.id == 0:
+            self.get_logger().error(f"[{self.id}] {msg}")
 
     def _fatal(self, msg):
-        self.get_logger().fatal(f"[{self.id}] {msg}")
+        if self.id == 0:
+            self.get_logger().fatal(f"[{self.id}] {msg}")
 
 
 def main(args=None):

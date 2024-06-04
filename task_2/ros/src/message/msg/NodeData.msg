@@ -1,3 +1,4 @@
 int64 warden_id
-float32[] ss
-float32[] vv
+int64 time
+float64[] ss
+float64[] vv

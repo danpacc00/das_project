@@ -55,9 +55,9 @@ def generate_launch_description():
                     "timer_period": timer_period,
                 },
             ],
-            output="screen",
+            # output="screen",
             # prefix=f'gnome-terminal -- bash -c "echo -ne \'\\033]0;Agent {i}\\007\'; $0; read -p \'Press any key to close this terminal...\'"'
-            prefix=f'xterm -title "Agent {i}" -hold -e',
+            # prefix=f'xterm -title "Agent {i}" -hold -e',
         )
 
         nodes.append(node)
@@ -76,7 +76,7 @@ def generate_launch_description():
             },
         ],
         output="screen",
-        prefix='xterm -title "Plotter" -hold -e',
+        # prefix='xterm -title "Plotter" -hold -e',
     )
 
     nodes.append(plotter_node)

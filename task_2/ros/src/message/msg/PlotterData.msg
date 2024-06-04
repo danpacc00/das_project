@@ -1,4 +1,4 @@
 int64 warden_id
-float32[] zz
-float32 cost
-float32 grad
+float64[] zz
+float64 cost
+float64 grad

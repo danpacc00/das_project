@@ -25,7 +25,7 @@ class Plotter(Node):
         Adj = self.get_parameter("Adj").value
         self.Adj = np.array(Adj).reshape(self.nodes, self.nodes)
 
-        self._info("Start animation")
+        self._debug("Start animation")
         self._sub = self.create_subscription(PlotterData, "/plotter", self._node_callback, 10)
         self._timer = self.create_timer(self.timer_period, self._timer_callback)
 
@@ -48,7 +48,7 @@ class Plotter(Node):
         self._cost[self._simtime] += cost
         self._grad[self._simtime] += grad
         self._zz[self._simtime][node_id] = np.array(zz)
-        self._info(f"Received data from node {node_id}")
+        self._debug(f"Received data from node {node_id}")
 
     def _timer_callback(self):
         kk = self._simtime
@@ -57,17 +57,19 @@ class Plotter(Node):
 
         all_received = all((self._zz[kk][node_id] != np.empty(2, dtype=object)).all() for node_id in range(self.nodes))
         if not all_received:
-            self._info("Waiting for all nodes to respond...")
+            self._debug("Waiting for all nodes to respond...")
             return
 
-        self._info(f"Iteration: #{kk}, Cost: {self._cost[kk]:.2f}, Gradient Magnitude: {self._grad[kk]:.2f}")
+        self._debug(f"Iteration: #{kk}, Cost: {self._cost[kk]:.2f}, Gradient Magnitude: {self._grad[kk]:.2f}")
 
-        self._info("All neighbors have responded. Checking convergency...")
+        self._debug("All neighbors have responded. Checking convergency...")
         if kk > 10 and np.std(self._grad[kk - 10 : kk]) < 1e-4 or kk > 150:
-            self._info("Convergency reached. Stopping...")
+            self._debug("Convergency reached. Stopping...")
             self._timer.destroy()
 
             zz = np.array(self._zz)
+
+            self._info(f"Results: {zz[-1, :]}")
 
             _, ax = plt.subplots(3, 1, figsize=(10, 10))
             ax[0].plot(np.arange(zz.shape[0]), zz[:, :, 0])
