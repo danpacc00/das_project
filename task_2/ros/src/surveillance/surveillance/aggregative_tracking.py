@@ -41,7 +41,7 @@ class AggregativeTracking:
         self.gradient_magnitude = np.zeros(max_iters)
         self.node_updaters = []
 
-    def run(self, graph, targets, d):
+    def run(self, graph, initial_poses, targets, d):
         nn = len(nx.nodes(graph))
         Adj = nx.adjacency_matrix(graph).toarray()
 
@@ -57,7 +57,9 @@ class AggregativeTracking:
 
         AA += np.eye(nn) - np.diag(np.sum(AA, axis=0))
 
-        zz = np.zeros((self.max_iters, nn, d))  # * 10 - 5
+        zz = np.zeros((self.max_iters, nn, d))
+        zz[0, :, :] = initial_poses
+
         ss = np.zeros((self.max_iters, nn, d))
         vv = np.zeros((self.max_iters, nn, d))
 
