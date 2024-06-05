@@ -1,4 +1,5 @@
 import sys
+import time
 
 import numpy as np
 import rclpy
@@ -70,7 +71,7 @@ class Warden(Node):
 
         self._ss[neighbor_id].append(np.array(ss))
         self._vv[neighbor_id].append(np.array(vv))
-        self._info(f"Received data from neighbor {neighbor_id} for time {time}: ss = {ss}, vv = {vv}")
+        self._debug(f"Received data from neighbor {neighbor_id} for time {time}: ss = {ss}, vv = {vv}")
 
     def _timer_callback(self):
         msg = NodeData()
@@ -80,9 +81,19 @@ class Warden(Node):
         if self._simtime == 0:
             msg.ss = [self._ss[self.id][self._simtime][0], self._ss[self.id][self._simtime][1]]
             msg.vv = [self._vv[self.id][self._simtime][0], self._vv[self.id][self._simtime][1]]
-            self._info(f"kk = 0, ss = {self._ss[self.id][0]}, vv = {self._vv[self.id][0]}")
             self._publisher.publish(msg)
             self._debug("Published initial data")
+
+            time.sleep(1)
+
+            data = PlotterData()
+            data.warden_id = self.id
+            data.zz = [float(self._zz[self._simtime][0]), float(self._zz[self._simtime][1])]
+            data.cost = 0.0
+            data.grad = 0.0
+            self._plotter_pub.publish(data)
+            self._info(f"Published data for plotter: zz = {self._zz[self._simtime]}")
+
             self._simtime += 1
             return
 
@@ -96,11 +107,6 @@ class Warden(Node):
         msg.ss = [self._ss[self.id][self._simtime][0], self._ss[self.id][self._simtime][1]]
         msg.vv = [self._vv[self.id][self._simtime][0], self._vv[self.id][self._simtime][1]]
         self._publisher.publish(msg)
-        if self.id == 0 and self._simtime < 150:
-            self._debug(f"Iteration: {self._simtime}, cost = {cost:.2f}, grad = {grad:.2f}")
-
-        if self._simtime > 10:
-            sys.exit(0)
 
         data = PlotterData()
         data.warden_id = self.id
@@ -117,8 +123,6 @@ class Warden(Node):
         kk = self._simtime
         ii = self.id
 
-        self._info(f"target = {self.target_position}, zz = {self._zz[kk - 1]}, ss = {self._ss[ii][kk - 1]}")
-
         li_nabla_1 = self._cost_fn(self.target_position, self._zz[kk - 1], self._ss[ii][kk - 1])[1]
         _, phi_grad = self._phi_fn(self._zz[kk - 1])
 
@@ -128,12 +132,9 @@ class Warden(Node):
         self._vv[ii].append(
             self.weights[ii] * self._vv[ii][kk - 1] + self._phi_fn(self._zz[kk])[1] - self._phi_fn(self._zz[kk - 1])[1]
         )
-        self._info(
-            f"kk = {kk}, ss = {self._ss[ii][kk]}, vv = {self._vv[ii][kk]}, li_nabla_1 = {li_nabla_1}, phi_grad = {phi_grad}"
-        )
 
-        # self._ss[ii][kk] += self.weights[ii] * self._ss[ii][kk - 1]
-        # self._vv[ii][kk] += self.weights[ii] * self._vv[ii][kk - 1]
+        self._ss[ii][kk] += self.weights[ii] * self._ss[ii][kk - 1]
+        self._vv[ii][kk] += self.weights[ii] * self._vv[ii][kk - 1]
 
         for jj in self.neighbors:
             weight = self.weights[jj]
@@ -145,24 +146,19 @@ class Warden(Node):
         return cost, np.linalg.norm(total_grad)
 
     def _debug(self, msg):
-        if self.id == 0:
-            self.get_logger().debug(f"[{self.id}] {msg}")
+        self.get_logger().debug(f"[{self.id}] {msg}")
 
     def _info(self, msg):
-        if self.id == 0 or self.id == 1:
-            self.get_logger().info(f"[{self.id}] {msg}")
+        self.get_logger().info(f"[{self.id}] {msg}")
 
     def _warn(self, msg):
-        if self.id == 0:
-            self.get_logger().warn(f"[{self.id}] {msg}")
+        self.get_logger().warn(f"[{self.id}] {msg}")
 
     def _error(self, msg):
-        if self.id == 0:
-            self.get_logger().error(f"[{self.id}] {msg}")
+        self.get_logger().error(f"[{self.id}] {msg}")
 
     def _fatal(self, msg):
-        if self.id == 0:
-            self.get_logger().fatal(f"[{self.id}] {msg}")
+        self.get_logger().fatal(f"[{self.id}] {msg}")
 
 
 def main(args=None):

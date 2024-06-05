@@ -9,6 +9,7 @@ from rclpy.node import Node
 from surveillance.functions import animation
 
 DEFAULT_TIMER_PERIOD = 2  # seconds
+DEFAULT_MAX_ITERS = 1000
 
 
 class Plotter(Node):
@@ -24,15 +25,19 @@ class Plotter(Node):
         self.timer_period = self.get_parameter("timer_period").value or DEFAULT_TIMER_PERIOD
         Adj = self.get_parameter("Adj").value
         self.Adj = np.array(Adj).reshape(self.nodes, self.nodes)
+        self.max_iters = self.get_parameter("max_iters").value or DEFAULT_MAX_ITERS
 
         self._debug("Start animation")
         self._sub = self.create_subscription(PlotterData, "/plotter", self._node_callback, 10)
         self._timer = self.create_timer(self.timer_period, self._timer_callback)
 
         self._simtime = 0
-        self._cost = []
-        self._grad = []
-        self._zz = []
+        self._node_costs = {ii: [] for ii in range(self.nodes)}
+        self._node_grads = {ii: [] for ii in range(self.nodes)}
+        self._zz = {ii: [] for ii in range(self.nodes)}
+
+        self._cost = np.zeros(self.max_iters)
+        self._grad = np.zeros(self.max_iters)
 
     def _node_callback(self, msg):
         node_id = msg.warden_id
@@ -40,34 +45,35 @@ class Plotter(Node):
         cost = msg.cost
         grad = msg.grad
 
-        if self._simtime >= len(self._zz):
-            self._zz.append(np.empty((self.nodes, 2), dtype=object))
-            self._cost.append(0)
-            self._grad.append(0)
+        if len(self._zz[node_id]) >= self.max_iters:
+            return
 
-        self._cost[self._simtime] += cost
-        self._grad[self._simtime] += grad
-        self._zz[self._simtime][node_id] = np.array(zz)
-        self._debug(f"Received data from node {node_id}")
+        self._node_costs[node_id].append(cost)
+        self._node_grads[node_id].append(grad)
+        self._zz[node_id].append(np.array(zz))
+        self._info(f"Received data from node {node_id}: zz = {zz}")
 
     def _timer_callback(self):
         kk = self._simtime
-        if kk >= len(self._zz):
+
+        all_received = all(len(self._zz[node_id]) > self._simtime for node_id in range(self.nodes))
+        if not all_received:
+            self._debug("Waiting for all neighbors to respond...")
             return
 
-        all_received = all((self._zz[kk][node_id] != np.empty(2, dtype=object)).all() for node_id in range(self.nodes))
-        if not all_received:
-            self._debug("Waiting for all nodes to respond...")
-            return
+        self._cost[kk] = sum(self._node_costs[node_id][kk] for node_id in range(self.nodes))
+        self._grad[kk] = sum(self._node_grads[node_id][kk] for node_id in range(self.nodes))
 
         self._debug(f"Iteration: #{kk}, Cost: {self._cost[kk]:.2f}, Gradient Magnitude: {self._grad[kk]:.2f}")
 
-        self._debug("All neighbors have responded. Checking convergency...")
-        if kk > 10 and np.std(self._grad[kk - 10 : kk]) < 1e-4 or kk > 150:
-            self._debug("Convergency reached. Stopping...")
+        if kk == self.max_iters - 1:
+            self._debug("Maximum number of iterations reached. Stopping...")
             self._timer.destroy()
 
-            zz = np.array(self._zz)
+            # Convert zz to numpy array
+            zz = np.zeros((self.max_iters, self.nodes, 2))
+            for ii in range(self.nodes):
+                zz[:, ii, :] = np.array(self._zz[ii])
 
             self._info(f"Results: {zz[-1, :]}")
 

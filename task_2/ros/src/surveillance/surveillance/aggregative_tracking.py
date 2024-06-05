@@ -15,9 +15,6 @@ class NodeUpdater:
     def update(self, kk, target, zz, ss, vv):
         ii = self.node_index
 
-        if ii == 0 and kk < 10:
-            print(f"target = {target}, zz = {zz[kk - 1, ii, :]}, ss = {ss[kk - 1, ii, :]}")
-
         li_nabla_1 = self.cost_fn(target, zz[kk - 1, ii, :], ss[kk - 1, ii, :])[1]
         _, phi_grad = self.phi_fn(zz[kk - 1, ii, :])
 
@@ -26,14 +23,9 @@ class NodeUpdater:
         ss[kk, ii, :] += self.phi_fn(zz[kk, ii, :])[0] - self.phi_fn(zz[kk - 1, ii, :])[0]
         vv[kk, ii, :] += self.phi_fn(zz[kk, ii, :])[1] - self.phi_fn(zz[kk - 1, ii, :])[1]
 
-        if ii == 0 and kk < 12:
-            print(f"kk = {kk}, ss = {ss[kk, ii, :]}")
-
         for jj, weight in self.neighbors.items():
-            if ii != jj:
-                print(f"jj = {jj}, ss = {ss[kk - 1, jj, :]}")
-                ss[kk, ii, :] += weight * ss[kk - 1, jj, :]
-                vv[kk, ii, :] += weight * vv[kk - 1, jj, :]
+            ss[kk, ii, :] += weight * ss[kk - 1, jj, :]
+            vv[kk, ii, :] += weight * vv[kk - 1, jj, :]
 
         return zz, ss, vv
 
@@ -83,8 +75,6 @@ class AggregativeTracking:
             )
             self.node_updaters.append(updater)
 
-        print(f"kk = 0, ss = {ss[0, 0, :]}, vv = {vv[0, 0, :]}")
-
         for kk in range(1, self.max_iters):
             for ii in range(nn):
                 target = targets[ii]
@@ -95,11 +85,9 @@ class AggregativeTracking:
                 self.gradient_magnitude[kk] += grad
 
                 cost = self.cost_fn(target, zz[kk, ii, :], ss[kk, ii, :])[0]
-                # if ii == 0:
-                #     print(f"Iteration: #{kk}, cost: {cost:.2f}, grad: {grad:.2f}")
                 self.cost[kk] += cost
 
-            # print(f"Iteration: #{kk}, Cost: {self.cost[kk]:.2f}, Gradient Magnitude: {self.gradient_magnitude[kk]:.2f}")
+            print(f"Iteration: #{kk}, Cost: {self.cost[kk]:.2f}, Gradient Magnitude: {self.gradient_magnitude[kk]:.2f}")
 
             # Take the gradient magnitude from the last 10 iterations and check if it's not changing a lot, then stop
             if kk > 10 and np.std(self.gradient_magnitude[kk - 10 : kk]) < 1e-4:

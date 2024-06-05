@@ -38,6 +38,26 @@ def generate_launch_description():
 
     AA += np.eye(N) - np.diag(np.sum(AA, axis=0))
 
+    plotter_node = Node(
+        package="surveillance",
+        namespace="plotter",
+        executable="plotter",
+        parameters=[
+            {
+                "id": "Plotter",
+                "nodes": N,
+                "Adj": [int(adj) for adj in Adj.flatten()],
+                "targets": [float(target) for target in targets.flatten()],
+                "timer_period": timer_period,
+                "max_iters": 150,
+            },
+        ],
+        output="screen",
+        # prefix='xterm -title "Plotter" -hold -e',
+    )
+
+    nodes.append(plotter_node)
+
     for i in range(N):
         N_ii = list(G.neighbors(i))
 
@@ -61,24 +81,5 @@ def generate_launch_description():
         )
 
         nodes.append(node)
-
-    plotter_node = Node(
-        package="surveillance",
-        namespace="plotter",
-        executable="plotter",
-        parameters=[
-            {
-                "id": "Plotter",
-                "nodes": N,
-                "Adj": [int(adj) for adj in Adj.flatten()],
-                "targets": [float(target) for target in targets.flatten()],
-                "timer_period": timer_period,
-            },
-        ],
-        output="screen",
-        # prefix='xterm -title "Plotter" -hold -e',
-    )
-
-    nodes.append(plotter_node)
 
     return LaunchDescription(nodes)
