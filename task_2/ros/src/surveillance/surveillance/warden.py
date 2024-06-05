@@ -1,14 +1,16 @@
 import sys
 
 import numpy as np
-import phi
 import rclpy
-from costs_fn import SurveillanceCost
 from geometry_msgs.msg import Pose
-from message.msg import NodeData
+from message.msg import NodeData, PlotterData
 from rclpy.node import Node
 
-DEFAULT_TIMER_PERIOD = 2
+from surveillance.costs_fn import SurveillanceCost
+from surveillance.phi import Identity
+
+DEFAULT_TIMER_PERIOD = 2  # seconds
+DEFAULT_ALPHA = 1e-2  # stepsize
 
 
 class Warden(Node):
@@ -19,11 +21,11 @@ class Warden(Node):
 
         self.id = self.get_parameter("id").value
         self.weights = self.get_parameter("weights").value
-        neighbors = self.get_parameter("neighbors").value
-        self.neighbors = {neighbor: weight for neighbor, weight in zip(neighbors, self.weights)}
+        self.neighbors = self.get_parameter("neighbors").value
         self.target_position = np.array(self.get_parameter("target").value)
         self.initial_pose = np.array(self.get_parameter("initial_pose").value)
         self.timer_period = self.get_parameter("timer_period").value or DEFAULT_TIMER_PERIOD
+        self.alpha = self.get_parameter("alpha").value or DEFAULT_ALPHA
 
         self.pose = Pose()
         self.pose.position.x = self.initial_pose[0]
@@ -37,26 +39,27 @@ class Warden(Node):
             f"Starting warden {self.id} at position x = {self.pose.position.x}, y = {self.pose.position.y} with target x = {self.target.position.x}, y = {self.target.position.y}"
         )
 
-        self._subscriptions = {}
+        self._subs = {}
         for neighbor in self.neighbors:
             self._info(f"Subscribing to neighbor {neighbor}")
-            self._subscriptions[neighbor] = self.create_subscription(
+            self._subs[neighbor] = self.create_subscription(
                 NodeData, f"/warden_{neighbor}", self._neighbor_callback, 10
             )
 
         self._publisher = self.create_publisher(NodeData, f"/warden_{self.id}", 10)
+        self._plotter_pub = self.create_publisher(PlotterData, "/plotter", 10)
         self._timer = self.create_timer(self.timer_period, self._timer_callback)
         self._simtime = 0
         self._data = []
-        self._phi_fn = phi.Identity()
+        self._phi_fn = Identity()
         self._cost_fn = SurveillanceCost(tradeoff=1.0)
         self._zz = [self.initial_pose]
         self._ss = [{jj: np.zeros(2) for jj in self.neighbors}]
         self._vv = [{jj: np.zeros(2) for jj in self.neighbors}]
 
-        self._ss[self._simtime][self.id] = self.phi_fn(self._zz[self._simtime])[0]
-        self._vv[self._simtime][self.id] = self.cost_fn(
-            self.target_position, self._zz[self._simtime][self.id], self._ss[self._simtime][self.id]
+        self._ss[self._simtime][self.id] = self._phi_fn(self._zz[self._simtime])[0]
+        self._vv[self._simtime][self.id] = self._cost_fn(
+            self.target_position, self._zz[self._simtime], self._ss[self._simtime][self.id]
         )[2]
 
     def _neighbor_callback(self, msg):
@@ -64,11 +67,12 @@ class Warden(Node):
         ss = msg.ss
         vv = msg.vv
 
-        if self._data[self._simtime] is None:
-            self._data.append({})
+        if self._simtime >= len(self._ss):
+            self._ss.append({})
+            self._vv.append({})
 
-        self._ss[self._simtime][neighbor_id] = ss
-        self._vv[self._simtime][neighbor_id] = vv
+        self._ss[self._simtime][neighbor_id] = np.array(ss)
+        self._vv[self._simtime][neighbor_id] = np.array(vv)
         self._info(f"Received data from neighbor {neighbor_id}")
 
     def _timer_callback(self):
@@ -76,49 +80,64 @@ class Warden(Node):
         msg.warden_id = self.id
 
         if self._simtime == 0:
-            msg.ss = self._ss[self._simtime][self.id]
-            msg.vv = self._vv[self._simtime][self.id]
+            msg.ss = [float(self._ss[self._simtime][self.id][0]), float(self._ss[self._simtime][self.id][1])]
+            msg.vv = [float(self._vv[self._simtime][self.id][0]), float(self._vv[self._simtime][self.id][1])]
             self._publisher.publish(msg)
-            self._info(f"Published initial pose (x = {self.pose.position.x}, y = {self.pose.position.y})")
+            self._info("Published initial data")
             self._simtime += 1
             return
 
-        all_received = all(neighbor_id in self._data[self._simtime] for neighbor_id in self.neighbors)
+        if self._simtime >= len(self._ss):
+            return
+
+        all_received = all(neighbor_id in self._ss[self._simtime] for neighbor_id in self.neighbors)
         if not all_received:
             self._info("Waiting for all neighbors to respond...")
             return
 
         self._info("All neighbors have responded. Updating pose...")
-        self._update()
-        msg.ss = self._ss[self._simtime][self.id]
-        msg.vv = self._vv[self._simtime][self.id]
+        cost, grad = self._update()
+        msg.ss = [float(self._ss[self._simtime][self.id][0]), float(self._ss[self._simtime][self.id][1])]
+        msg.vv = [float(self._vv[self._simtime][self.id][0]), float(self._vv[self._simtime][self.id][1])]
         self._publisher.publish(msg)
         self._info("Published updated data")
+
+        data = PlotterData()
+        data.warden_id = self.id
+        data.zz = [float(self._zz[self._simtime][0]), float(self._zz[self._simtime][1])]
+        data.cost = cost
+        data.grad = grad
+        self._plotter_pub.publish(data)
+        self._info("Published data for plotter")
 
         self._simtime += 1
 
     def _update(self):
         self._info("Updating...")
+        kk = self._simtime
+        ii = self.id
 
-        li_nabla_1 = self._cost_fn(
-            self.target_position, self._zz[self._simtime - 1], self._ss[self._simtime - 1][self.id]
-        )[1]
-        _, phi_grad = self._phi_fn(self._zz[self._simtime - 1])
+        li_nabla_1 = self._cost_fn(self.target_position, self._zz[kk - 1], self._ss[kk - 1][ii])[1]
+        _, phi_grad = self._phi_fn(self._zz[kk - 1])
 
-        self._zz[self._simtime] = self._zz[self._simtime] - self.alpha * (
-            li_nabla_1 + self._vv[self._simtime][self.id] + phi_grad
+        self._zz.append(self._zz[kk - 1] - self.alpha * (li_nabla_1 + self._vv[kk - 1][ii] + phi_grad))
+
+        self._ss[kk][ii] = (
+            self.weights[ii] * self._ss[kk - 1][ii] + self._phi_fn(self._zz[kk])[0] - self._phi_fn(self._zz[kk - 1])[0]
+        )
+        self._vv[kk][ii] = (
+            self.weights[ii] * self._vv[kk - 1][ii] + self._phi_fn(self._zz[kk])[1] - self._phi_fn(self._zz[kk - 1])[1]
         )
 
-        self._ss[self._simtime][self.id] += (
-            self.phi_fn(self._zz[self._simtime])[0] - self.phi_fn(self._zz[self._simtime - 1])[0]
-        )
-        self._vv[self._simtime][self.id] += (
-            self.phi_fn(self._zz[self._simtime])[1] - self.phi_fn(self._zz[self._simtime - 1])[1]
-        )
+        for jj in self.neighbors:
+            weight = self.weights[jj]
+            self._info(f"Updating from neighbor {jj} with weight {weight}")
+            self._ss[kk][ii] += weight * self._ss[kk - 1][jj]
+            self._vv[kk][ii] += weight * self._vv[kk - 1][jj]
 
-        for jj, weight in self.neighbors.items():
-            self._ss[self._simtime][self.id] += weight * self._ss[self._simtime - 1][jj]
-            self._vv[self._simtime][self.id] += weight * self._vv[self._simtime - 1][jj]
+        cost = self._cost_fn(self.target_position, self._zz[kk], self._ss[kk][ii])[0]
+        total_grad = self._cost_fn(self.target_position, self._zz[kk], self._ss[kk][ii])[1:]
+        return cost, np.linalg.norm(total_grad)
 
     def _debug(self, msg):
         self.get_logger().debug(f"[{self.id}] {msg}")
@@ -137,6 +156,7 @@ class Warden(Node):
 
 
 def main(args=None):
+    np.random.seed(0)
     rclpy.init(args=args)
 
     try:

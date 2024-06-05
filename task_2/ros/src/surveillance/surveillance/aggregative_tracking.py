@@ -57,7 +57,7 @@ class AggregativeTracking:
 
         AA += np.eye(nn) - np.diag(np.sum(AA, axis=0))
 
-        zz = np.random.rand(self.max_iters, nn, d) * 10 - 5
+        zz = np.zeros((self.max_iters, nn, d))  # * 10 - 5
         ss = np.zeros((self.max_iters, nn, d))
         vv = np.zeros((self.max_iters, nn, d))
 

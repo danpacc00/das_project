@@ -1,4 +1,5 @@
 from time import sleep
+
 import rclpy
 from rclpy.node import Node
 from std_msgs.msg import Float32MultiArray as MsgFloat
@@ -14,19 +15,15 @@ class Agent(Node):
         self.agent_id = self.get_parameter("id").value
         self.neighbors = self.get_parameter("Nii").value
         self.x_i = self.get_parameter("xzero").value
-        self.get_logger().info(f"I am agent: {self.agent_id}")
+        self.get_logger().info(f"I am agent: {self.agent_id}, neighbors: {self.neighbors}")
 
         self.t = 0
 
         for j in self.neighbors:
             print(self.neighbors)
-            self.create_subscription(
-                MsgFloat, f"/topic_{j}", self.listener_callback, 10
-            )
+            self.create_subscription(MsgFloat, f"/topic_{j}", self.listener_callback, 10)
 
-        self.publisher = self.create_publisher(
-            MsgFloat, f"/topic_{self.agent_id}", 10
-        )  # topic_i
+        self.publisher = self.create_publisher(MsgFloat, f"/topic_{self.agent_id}", 10)  # topic_i
 
         timer_period = 2
         self.timer = self.create_timer(timer_period, self.timer_callback)
@@ -50,9 +47,7 @@ class Agent(Node):
 
             self.t += 1
         else:
-            all_received = all(
-                self.t - 1 == self.received_data[j][0][0] for j in self.neighbors
-            )
+            all_received = all(self.t - 1 == self.received_data[j][0][0] for j in self.neighbors)
             if all_received:
                 local_max = self.x_i
                 for j in self.neighbors:

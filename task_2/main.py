@@ -21,6 +21,9 @@ def main():
     args = argparser.parse_args()
 
     # targets = np.random.rand(args.nodes, 2) * 10 - 5
+    targets = np.array(
+        [[0.48813504, 2.15189366], [1.02763376, 0.44883183], [-0.76345201, 1.45894113], [-0.62412789, 3.91773001]]
+    )
 
     # cost = SurveillanceCost(tradeoff=1.0)
     # algo = AggregativeTracking(cost, phi.Identity(), max_iters=args.iters, alpha=1e-2)

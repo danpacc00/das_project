@@ -114,4 +114,8 @@ def animation(XX, horizon, Adj, targets):
         plt.title(f"Formation Control - Simulation time = {horizon[tt]:.2f} s")
         plt.show(block=False)
         plt.pause(0.1)
+
+        if tt == len(horizon) - 1:
+            plt.pause(10)
+
         plt.clf()
