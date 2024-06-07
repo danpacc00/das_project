@@ -121,9 +121,10 @@ def animation(XX, horizon, Adj, targets):
         plt.clf()
 
 
-def animation2(XX, horizon, Adj, targets, up_wall, down_wall, middle):
+def animation2(XX, horizon, Adj, targets, top_wall, bottom_wall, middle):
     NN = XX.shape[1]
 
+    plt.figure(figsize=(20, 20))
     for tt in range(len(horizon)):
         # plot trajectories
         plt.plot(
@@ -135,11 +136,19 @@ def animation2(XX, horizon, Adj, targets, up_wall, down_wall, middle):
         )
 
         # plot corridor
-        plt.plot(up_wall[:, 0], up_wall[:, 1], "k")
-        plt.plot(down_wall[:, 0], down_wall[:, 1], "k")
         plt.plot(
-            middle[:, 0],
-            middle[:, 1],
+            np.linspace(top_wall["x_start"], top_wall["x_end"], top_wall["res"]),
+            np.tile(top_wall["y"], top_wall["res"]),
+            "k",
+        )
+        plt.plot(
+            np.linspace(bottom_wall["x_start"], bottom_wall["x_end"], bottom_wall["res"]),
+            np.tile(bottom_wall["y"], bottom_wall["res"]),
+            "k",
+        )
+        plt.plot(
+            np.linspace(middle[0] + top_wall["x_start"], middle[0] + top_wall["x_end"], top_wall["res"]),
+            np.tile(middle[1], bottom_wall["res"]),
             linestyle="dashed",
             color=gray_O4S,
             alpha=0.2,
@@ -193,9 +202,9 @@ def animation2(XX, horizon, Adj, targets, up_wall, down_wall, middle):
                         linestyle="solid",
                     )
 
-        axes_lim = (np.min(XX) - 1, np.max(XX) + 1)
-        plt.xlim(axes_lim)
-        plt.ylim(axes_lim)
+        # axes_lim = (np.min(XX) - 1, np.max(XX) + 1)
+        plt.xlim(-50, 50)  # Set the x-axis limits
+        plt.ylim(-50, 50)
         plt.axis("equal")
         plt.xlabel("first component")
         plt.ylabel("second component")
