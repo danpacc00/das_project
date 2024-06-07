@@ -210,7 +210,10 @@ def animation2(XX, horizon, Adj, targets, top_wall, bottom_wall, middle, obstacl
         plt.xlabel("first component")
         plt.ylabel("second component")
         plt.title(f"Formation Control - Simulation time = {horizon[tt]:.2f} s")
-        plt.show(block=False)
-        plt.pause(0.001)
 
-        plt.clf()
+        if tt < len(horizon) - 1:
+            plt.show(block=False)
+            plt.pause(0.1)
+            plt.clf()
+        else:
+            plt.show()

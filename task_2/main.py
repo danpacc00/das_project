@@ -86,18 +86,18 @@ def main():
         )
     ).T
 
-    for i in range(1, len(targets_list)):
-        plt.figure("Corridor", figsize=(20, 20))
+    for i in range(1, 2):
+        # plt.figure("Corridor", figsize=(20, 20))
 
-        plt.plot(targets_list[i][:, 0], targets_list[i][:, 1], "bx")
-        plt.plot(initial_poses_list[i][:, 0], initial_poses_list[i][:, 1], "ro")
-        plt.plot(obstacles[:, 0], obstacles[:, 1], "o")
+        # plt.plot(targets_list[i][:, 0], targets_list[i][:, 1], "bx")
+        # plt.plot(initial_poses_list[i][:, 0], initial_poses_list[i][:, 1], "ro")
+        # plt.plot(obstacles[:, 0], obstacles[:, 1], "o")
 
-        plt.xlim(-50, 50)  # Set the x-axis limits
-        plt.ylim(-50, 50)  # Set the y-axis limits
-        plt.show()
+        # plt.xlim(-50, 50)  # Set the x-axis limits
+        # plt.ylim(-50, 50)  # Set the y-axis limits
+        # plt.show()
 
-        cost = CorridorCost(obstacles=obstacles, alpha=0.8, beta=10, gamma=0.5, dd=0.1)
+        cost = CorridorCost(obstacles=obstacles, alpha=0.8, beta=10, gamma=0.5, dd=1)
         algo = AggregativeTracking(cost, phi.Identity(), max_iters=args.iters, alpha=1e-2)
 
         graph = nx.path_graph(args.nodes)
@@ -119,7 +119,6 @@ def main():
 
             plt.show()
 
-            plt.figure("Animation")
             animation2(
                 zz,
                 np.linspace(0, kk, kk),
