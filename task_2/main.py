@@ -37,8 +37,8 @@ def main():
 
     targets_list = [
         random_pos_target,
-        np.column_stack((random_pos_target[:, 0], random_pos_target[:, 1] + y_offset)),
         np.column_stack((random_pos_target[:, 0], random_pos_target[:, 1] - y_offset)),
+        np.column_stack((random_pos_target[:, 0], random_pos_target[:, 1] + y_offset)),
         np.column_stack((random_pos_target[:, 0], random_pos_target[:, 1] + y_offset)),
     ]
 
@@ -56,28 +56,48 @@ def main():
         np.column_stack((random_initial_poses[:, 0], random_initial_poses[:, 1] - y_offset)),
     ]
 
-    print("targets_list", targets_list[1])
-    print("target list shape", targets_list[1].shape)
+    nobstacles = 250
+    obstacles = np.column_stack(
+        (
+            np.array(
+                (
+                    np.tile(top_wall["x_start"], nobstacles),
+                    np.linspace(top_wall["y"], top_wall["y"] + y_offset * 4, nobstacles),
+                )
+            ),
+            np.array(
+                (
+                    np.tile(bottom_wall["x_start"], nobstacles),
+                    np.linspace(bottom_wall["y"], bottom_wall["y"] - y_offset * 4, nobstacles),
+                )
+            ),
+            np.array(
+                (
+                    np.linspace(top_wall["x_start"], top_wall["x_end"], nobstacles),
+                    np.tile(top_wall["y"], nobstacles),
+                )
+            ),
+            np.array(
+                (
+                    np.linspace(bottom_wall["x_start"], bottom_wall["x_end"], nobstacles),
+                    np.tile(bottom_wall["y"], nobstacles),
+                )
+            ),
+        )
+    ).T
 
-    for i in range(len(targets_list)):
+    for i in range(1, len(targets_list)):
         plt.figure("Corridor", figsize=(20, 20))
-        plt.plot(
-            np.linspace(top_wall["x_start"], top_wall["x_end"], top_wall["res"]),
-            np.tile(top_wall["y"], top_wall["res"]),
-            "k",
-        )
-        plt.plot(
-            np.linspace(bottom_wall["x_start"], bottom_wall["x_end"], bottom_wall["res"]),
-            np.tile(bottom_wall["y"], bottom_wall["res"]),
-            "k",
-        )
+
         plt.plot(targets_list[i][:, 0], targets_list[i][:, 1], "bx")
         plt.plot(initial_poses_list[i][:, 0], initial_poses_list[i][:, 1], "ro")
+        plt.plot(obstacles[:, 0], obstacles[:, 1], "o")
+
         plt.xlim(-50, 50)  # Set the x-axis limits
         plt.ylim(-50, 50)  # Set the y-axis limits
-        # plt.show()
+        plt.show()
 
-        cost = CorridorCost(tradeoff=1.0, corridor=middle)
+        cost = CorridorCost(obstacles=obstacles, alpha=0.8, beta=10, gamma=0.5, dd=0.1)
         algo = AggregativeTracking(cost, phi.Identity(), max_iters=args.iters, alpha=1e-2)
 
         graph = nx.path_graph(args.nodes)
@@ -108,6 +128,7 @@ def main():
                 top_wall,
                 bottom_wall,
                 middle,
+                obstacles,
             )
 
 

@@ -121,7 +121,7 @@ def animation(XX, horizon, Adj, targets):
         plt.clf()
 
 
-def animation2(XX, horizon, Adj, targets, top_wall, bottom_wall, middle):
+def animation2(XX, horizon, Adj, targets, top_wall, bottom_wall, middle, obstacles):
     NN = XX.shape[1]
 
     plt.figure(figsize=(20, 20))
@@ -153,6 +153,7 @@ def animation2(XX, horizon, Adj, targets, top_wall, bottom_wall, middle):
             color=gray_O4S,
             alpha=0.2,
         )
+        plt.plot(obstacles[:, 0], obstacles[:, 1], "o")
 
         # plot targets
         for ii in range(targets.shape[0]):
@@ -210,9 +211,6 @@ def animation2(XX, horizon, Adj, targets, top_wall, bottom_wall, middle):
         plt.ylabel("second component")
         plt.title(f"Formation Control - Simulation time = {horizon[tt]:.2f} s")
         plt.show(block=False)
-        plt.pause(0.1)
-
-        if tt == len(horizon) - 1:
-            plt.pause(10)
+        plt.pause(0.001)
 
         plt.clf()
