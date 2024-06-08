@@ -30,8 +30,8 @@ def main():
     y_offset = 20
     random_pos_target = np.array(
         (
-            np.random.rand(args.nodes) * top_wall["x_end"] + top_wall["x_end"] + x_offset,
-            np.random.rand(args.nodes) * np.abs(top_wall["y"]) * 2,
+            np.random.rand(args.nodes) * top_wall["x_end"] * 10 + top_wall["x_end"] + x_offset,
+            np.random.rand(args.nodes) * np.abs(top_wall["y"]) * 5 * 2,
         )
     ).T
 
@@ -44,8 +44,8 @@ def main():
 
     random_initial_poses = np.array(
         (
-            np.random.rand(args.nodes) * top_wall["x_start"] + top_wall["x_start"] - x_offset,
-            np.random.rand(args.nodes) * np.abs(top_wall["y"]) * 2,
+            np.random.rand(args.nodes) * top_wall["x_start"] * 10 + top_wall["x_start"] - x_offset,
+            np.random.rand(args.nodes) * np.abs(top_wall["y"]) * 5 * 2,
         )
     ).T
 
