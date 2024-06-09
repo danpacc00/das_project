@@ -2,17 +2,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 from scipy.optimize import minimize
 
-# Step 1: Generate the dataset
-M = 500  # Number of points
-d = 2  # Dimension of data
-q = 1  # Dimension of feature space (after transformation)
-
-
-# Assign random labels (-1 or 1)
-labels = np.random.choice([-1, 1], size=M)
-
-# Step 2: Define the separating function
-
 
 def phi(x):
     x = np.array(x)
@@ -36,61 +25,59 @@ def ellipse_equation(w, bias, x):
     return y_positive, y_negative
 
 
-def create_labeled_dataset(show_plot=False):
-    a = 9.0  # Stretch wrt x-axis
-    b = 2.0  # Tilt wrt x-axis
-    c = 1.0  # Coefficient for x^2. Controls the width of the ellipse
-    d = 5  # Coefficient for y^2. Controls the height of the ellipse
-    e = 0.5  # Distance from center of ellispse to one of its foci. Determines the size.
+def create_labeled_dataset(w, M, show_plot=False):
+    a = w[0]  # Stretch wrt x-axis
+    b = w[1]  # Tilt wrt x-axis
+    c = w[2]  # Coefficient for x^2. Controls the width of the ellipse
+    d = w[3]  # Coefficient for y^2. Controls the height of the ellipse
+    e = w[4]
 
-    w = np.array([a, b, c, d])  # Weights
+    theta = np.array([a, b, c, d])  # Weights
     bias = -(e**2)  # Bias
 
-    # Step 3: Plot the dataset and separating function
-    plt.figure(figsize=(8, 6))
-
     # Plot the separating function as a line
-    x_1 = np.linspace(-10, 10, 10000)
+    x_lim = 10
+    x_points = np.linspace(-x_lim, x_lim, 10000)
 
-    y_line_pos = np.zeros(len(x_1))
-    y_line_neg = np.zeros(len(x_1))
+    y_line_pos = np.zeros(len(x_points))
+    y_line_neg = np.zeros(len(x_points))
 
-    for i in range(len(x_1)):
-        y_line_pos[i] = ellipse_equation(w, bias, x_1[i])[0]
-        y_line_neg[i] = ellipse_equation(w, bias, x_1[i])[1]
+    for i in range(len(x_points)):
+        y_line_pos[i] = ellipse_equation(theta, bias, x_points[i])[0]
+        y_line_neg[i] = ellipse_equation(theta, bias, x_points[i])[1]
 
-    plt.plot(x_1, y_line_pos, color="green", linestyle="--", label="Separating Function")
-    plt.plot(x_1, y_line_neg, color="green", linestyle="--")
+    y_lim = d
 
-    axes = plt.gca()
-    Xlim = axes.get_xlim()
-    Ylim = axes.get_ylim()
     offset = 1.5
 
-    D_1 = np.random.uniform(Xlim[0] - offset, Xlim[1] + offset, size=(M, 1))
-    D_2 = np.random.uniform(Ylim[0] - offset, Ylim[1] + offset, size=(M, 1))
+    D_1 = np.random.uniform(-x_lim - offset, x_lim + offset, size=(M, 1))
+    D_2 = np.random.uniform(-y_lim - offset, y_lim + offset, size=(M, 1))
 
     D = np.concatenate((D_1, D_2), axis=1)
 
-    # Plot the dataset not labeled
-    # plt.scatter(D[:, 0], D[:, 1], color="black")
-
     # Label the data with the separating function
     labeled_dataset = np.zeros((M, 3))
+    plt.figsize = (20, 20)
 
     for i in range(M):
-        if separating_function(w, bias, D[i]) >= 0:
+        if separating_function(theta, bias, D[i]) >= 0:
             labeled_dataset[i] = np.array([D[i, 0], D[i, 1], 1])
-            plt.scatter(D[i, 0], D[i, 1], color="blue")
+
+            if show_plot:
+                plt.scatter(D[i, 0], D[i, 1], color="blue")
 
         else:
             labeled_dataset[i] = np.array([D[i, 0], D[i, 1], -1])
-            plt.scatter(D[i, 0], D[i, 1], color="red")
+
+            if show_plot:
+                plt.scatter(D[i, 0], D[i, 1], color="red")
 
     if show_plot:
+        plt.plot(x_points, y_line_pos, color="green", linestyle="--", label="Separating Function")
+        plt.plot(x_points, y_line_neg, color="green", linestyle="--")
         plt.xlabel("Feature 1")
         plt.ylabel("Feature 2")
-        plt.title("Dataset with Nonlinear Separating Function")
+        plt.title(f"Dataset with Nonlinear Separating Function. Number of points: {M}")
         plt.legend()
         plt.grid(True)
         plt.show()
@@ -100,22 +87,22 @@ def create_labeled_dataset(show_plot=False):
 
 # Define the cost function and the gradient
 def cost(theta, points):
-    w, bias = theta[:4], theta[4]
+    theta, bias = theta[:4], theta[4]
 
     cost = 0
     for i in range(len(points)):
         x = points[i, :2]
         p = points[i, 2]
-        cost += np.log(1 + np.exp(-p * (np.dot(w, phi(x)) + bias)))
+        cost += np.log(1 + np.exp(-p * (np.dot(theta, phi(x)) + bias)))
 
     return cost
 
 
 def cost_gradient(theta, points):
-    w, bias = theta[:4], theta[4]
+    theta, bias = theta[:4], theta[4]
 
     def sep_fn(x):
-        return np.dot(w, phi(x)) + bias
+        return np.dot(theta, phi(x)) + bias
 
     gradient = np.zeros(5)
     for i in range(len(points)):
@@ -131,7 +118,7 @@ def cost_gradient(theta, points):
     return gradient
 
 
-def classify_points(dataset):
+def centralized_gradient(dataset):
     intermediate_results = []
     result = minimize(
         fun=cost,
@@ -146,24 +133,25 @@ def classify_points(dataset):
     print(f"first result: {intermediate_results[0]}")
 
     # Plot evolution of the cost function
-    plt.figure(figsize=(8, 6))
-    plt.plot([cost(theta, dataset) for theta in intermediate_results], color="blue")
-    plt.xlabel("Iteration")
-    plt.ylabel("Cost")
-    plt.title("Evolution of the Cost Function")
-    plt.grid(True)
-    plt.show()
+
+    fig, axs = plt.subplots(2, 1, figsize=(10, 12))
+
+    axs[0].plot([cost(theta, dataset) for theta in intermediate_results], color="blue")
+    axs[0].set_xlabel("Iteration")
+    axs[0].set_ylabel("Cost")
+    axs[0].set_title("Evolution of the Cost Function")
+    axs[0].grid(True)
 
     # Plot evolution of the norm of the gradient of the cost function
-    plt.figure(figsize=(8, 6))
-    plt.plot([np.linalg.norm(cost_gradient(theta, dataset)) for theta in intermediate_results], color="red")
-    plt.xlabel("Iteration")
-    plt.ylabel("Norm of the Gradient")
-    plt.title("Evolution of the Norm of the Gradient")
-    plt.grid(True)
-    plt.show()
+    axs[1].plot([np.linalg.norm(cost_gradient(theta, dataset)) for theta in intermediate_results], color="red")
+    axs[1].set_xlabel("Iteration")
+    axs[1].set_ylabel("Norm of the Gradient")
+    axs[1].set_title("Evolution of the Norm of the Gradient")
+    axs[1].grid(True)
 
-    plot_results(dataset, result.x, "Parameters found by centrallized gradient")
+    plt.tight_layout()
+
+    plot_results(dataset, result.x, "Parameters found by centralized gradient")
 
 
 def plot_results(dataset, theta, title):

@@ -1,5 +1,6 @@
 import networkx as nx
 import numpy as np
+import signal
 
 
 class GradientTracking:
@@ -36,6 +37,10 @@ class GradientTracking:
             _, ss[0, ii, :] = self.cost_fn(ii, zz[0, ii, :])
 
         for kk in range(1, self.max_iters):
+            if break_loop:
+                print("Loop interrupted by user!")
+                break
+
             grad = np.zeros(d)
             for ii in range(nn):
                 N_ii = np.nonzero(Adj[ii])[0]

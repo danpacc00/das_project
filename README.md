@@ -8,7 +8,7 @@ This is the repository of the DAS project made by two fucking awesome guys
 
 ### Task 1.2
 
-1. Aggiungere più simulazioni: (D)
+1. Aggiungere più simulazioni: (D) - DONE
     - modificare parametri
     - modificare numero punti
 

@@ -20,52 +20,54 @@ def main():
 
     args = argparser.parse_args()
 
-    graphs = [
-        {"name": "cycle", "fn": nx.cycle_graph},
-        {"name": "complete", "fn": nx.complete_graph},
-        {"name": "star", "fn": nx.star_graph},
-    ]
+    # graphs = [
+    #     {"name": "cycle", "fn": nx.cycle_graph},
+    #     {"name": "complete", "fn": nx.complete_graph},
+    #     {"name": "star", "fn": nx.star_graph},
+    # ]
 
-    for graph_opt in graphs:
-        graph = graph_opt["fn"](args.nodes) if graph_opt["name"] != "star" else nx.star_graph(args.nodes - 1)
+    # for graph_opt in graphs:
+    #     graph = graph_opt["fn"](args.nodes) if graph_opt["name"] != "star" else nx.star_graph(args.nodes - 1)
 
-        # graph = graph_opt["fn"](args.nodes)
-        # if graph_opt["name"] == "star":
-        #     print("graph", graph)
+    #     cost_fn = QuadraticCost(args.nodes, d=1)
+    #     gt = GradientTracking(cost_fn, max_iters=args.iters, alpha=1e-2)
 
-        cost_fn = QuadraticCost(args.nodes, d=1)
-        gt = GradientTracking(cost_fn, max_iters=args.iters, alpha=1e-2)
+    #     zz, cost, gradient_magnitude = gt.run(graph, d=1, zz0=np.random.uniform(-5, 5, size=(args.nodes, 1)))
 
-        zz, cost, gradient_magnitude = gt.run(graph, d=1, zz0=np.random.uniform(-5, 5, size=(args.nodes, 1)))
+    #     if not args.no_plots:
+    #         _, ax = plt.subplots(3, 1, figsize=(10, 10))
+    #         ax[0].plot(np.arange(zz.shape[0]), zz[:, :, 0])
+    #         ax[0].grid()
+    #         ax[0].set_title(f"{graph_opt['name']} - Gradient tracking")
 
-        if not args.no_plots:
-            _, ax = plt.subplots(3, 1, figsize=(10, 10))
-            ax[0].plot(np.arange(zz.shape[0]), zz[:, :, 0])
-            ax[0].grid()
-            ax[0].set_title(f"{graph_opt['name']} - Gradient tracking")
+    #         ax[1].plot(np.arange(zz.shape[0] - 1), cost[:-1])
+    #         ax[1].grid()
+    #         ax[1].set_title(f"{graph_opt['name']} - Cost")
 
-            ax[1].plot(np.arange(zz.shape[0] - 1), cost[:-1])
-            ax[1].grid()
-            ax[1].set_title(f"{graph_opt['name']} - Cost")
+    #         ax[2].semilogy(np.arange(zz.shape[0] - 1), gradient_magnitude[1:])
+    #         ax[2].grid()
+    #         ax[2].set_title(f"{graph_opt['name']} - Gradient magnitude")
 
-            ax[2].semilogy(np.arange(zz.shape[0] - 1), gradient_magnitude[1:])
-            ax[2].grid()
-            ax[2].set_title(f"{graph_opt['name']} - Gradient magnitude")
-
-            plt.show()
+    #         plt.show()
 
     # Task 1.2
+
     if args.dataset == "ellipse":
-        from dataset import classification_error, classify_points, create_labeled_dataset, plot_results
+        from dataset import classification_error, centralized_gradient, create_labeled_dataset, plot_results
 
         dimension = 5
+        theta_list = [(9.0, 2.0, 1.0, 5.0, 0.5), (9.0, 2.0, 1.0, -5.0, 0.5), (np.random.uniform(0, 20, size=5))]
+
     else:
-        from dataset_line import classification_error, classify_points, create_labeled_dataset, plot_results
+        from dataset_line import classification_error, centralized_gradient, create_labeled_dataset, plot_results
 
         dimension = 2
 
-    labeled_dataset = create_labeled_dataset(show_plot=False)
-    classify_points(labeled_dataset)
+    for i in range(len(theta_list)):
+        labeled_dataset = create_labeled_dataset(theta_list[i], M=np.random.randint(500, 1000), show_plot=False)
+
+        print("Running centralized gradient...")
+        centralized_gradient(labeled_dataset)
 
     # Task 1.3
     # Split the dataset into NN groups
