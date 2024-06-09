@@ -36,6 +36,7 @@ class GradientTracking:
             _, ss[0, ii, :] = self.cost_fn(ii, zz[0, ii, :])
 
         for kk in range(1, self.max_iters):
+            grad = np.zeros(d)
             for ii in range(nn):
                 N_ii = np.nonzero(Adj[ii])[0]
 
@@ -49,13 +50,14 @@ class GradientTracking:
 
                 _, grad_ell_ii_new = self.cost_fn(ii, zz[kk, ii, :])
 
-                self.gradient_magnitude[kk] += np.linalg.norm(grad_ell_ii_new)
-
                 _, grad_ell_ii_old = self.cost_fn(ii, zz[kk - 1, ii, :])
                 ss[kk, ii, :] += grad_ell_ii_new - grad_ell_ii_old
 
                 ell_ii_gt, _ = self.cost_fn(ii, zz[kk, ii, :])
                 self.cost[kk] += ell_ii_gt
+                grad += grad_ell_ii_new
+
+            self.gradient_magnitude[kk] += np.linalg.norm(grad)
 
             print(f"Iteration: #{kk}, Cost: {self.cost[kk]:.2f}, Gradient Magnitude: {self.gradient_magnitude[kk]:.2f}")
 
