@@ -1,6 +1,5 @@
 import networkx as nx
 import numpy as np
-import signal
 
 
 class GradientTracking:
@@ -29,18 +28,13 @@ class GradientTracking:
         AA += np.eye(nn) - np.diag(np.sum(AA, axis=0))
 
         zz = np.zeros((self.max_iters, nn, d))
-        # zz[0, :, :] = np.random.uniform(size=(nn, d))
-        # zz[0, :, :] = np.array([9, 2, 1, 5, 0.5]) + np.array([0.1, 0.1, 0.1, 0.1, 0.1])
         zz[0, :, :] = zz0
+
         ss = np.zeros((self.max_iters, nn, d))
         for ii in range(nn):
             _, ss[0, ii, :] = self.cost_fn(ii, zz[0, ii, :])
 
         for kk in range(1, self.max_iters):
-            if break_loop:
-                print("Loop interrupted by user!")
-                break
-
             grad = np.zeros(d)
             for ii in range(nn):
                 N_ii = np.nonzero(Adj[ii])[0]

@@ -11,14 +11,16 @@ This is the repository of the DAS project made by two fucking awesome guys
 1. Aggiungere più simulazioni: (D) - DONE
     - modificare parametri
     - modificare numero punti
+2. Verificare stampa dei parametri: non sembrano corretti anche se i grafici lo sono
 
 ### Task 1.3
 
-1. Aggiungere più simulazioni: (M)
+1. Aggiungere più simulazioni: (M) - DONE
     - modificare parametri
     - modificare numero punti
 2. Verificare correttezza implementazione con perturbazione dai parametri reali almeno del 60/70% (D)
-3. Plottare differenza con costo ottimale (prenderlo da codice notarnicola) (M)
+3. Plottare differenza con costo ottimale (prenderlo da codice notarnicola) (M) - DONE
+4. Chiedere a Ste che gradient magnitude raggiungono loro (la nostra rimane molto alta, non arriva all'ordine di 10^-1)
 
 ## Task 2
 

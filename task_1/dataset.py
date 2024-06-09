@@ -126,14 +126,10 @@ def centralized_gradient(dataset):
         args=(dataset,),
         method="BFGS",
         jac=cost_gradient,
-        options={"disp": True},
         callback=lambda x: intermediate_results.append(x),
     )
 
-    print(f"first result: {intermediate_results[0]}")
-
     # Plot evolution of the cost function
-
     fig, axs = plt.subplots(2, 1, figsize=(10, 12))
 
     axs[0].plot([cost(theta, dataset) for theta in intermediate_results], color="blue")
@@ -143,7 +139,7 @@ def centralized_gradient(dataset):
     axs[0].grid(True)
 
     # Plot evolution of the norm of the gradient of the cost function
-    axs[1].plot([np.linalg.norm(cost_gradient(theta, dataset)) for theta in intermediate_results], color="red")
+    axs[1].semilogy([np.linalg.norm(cost_gradient(theta, dataset)) for theta in intermediate_results], color="red")
     axs[1].set_xlabel("Iteration")
     axs[1].set_ylabel("Norm of the Gradient")
     axs[1].set_title("Evolution of the Norm of the Gradient")
@@ -158,6 +154,7 @@ def plot_results(dataset, theta, title):
     print(
         f"Parameters: a = {theta[0]:.2f}, b = {theta[1]:.2f}, c = {theta[2]:.2f}, d = {theta[3]:.2f}, bias = {theta[4]:.2f}, e = {np.sqrt(-theta[4]):.2f}"
     )
+    print(f"Classification error: {classification_error(dataset, theta)}")
 
     w, bias = theta[:4], theta[4]
 
