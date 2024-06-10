@@ -30,21 +30,30 @@ def create_labeled_dataset(w, M, show_plot=False):
     b = w[1]  # Tilt wrt x-axis
     c = w[2]  # Coefficient for x^2. Controls the width of the ellipse
     d = w[3]  # Coefficient for y^2. Controls the height of the ellipse
-    e = w[4]
+    bias = w[4]
 
     theta = np.array([a, b, c, d])  # Weights
-    bias = -(e**2)  # Bias
 
     # Plot the separating function as a line
-    x_lim = 10
-    x_points = np.linspace(-x_lim, x_lim, 10000)
+    x_lim_plus = -a / (2 * c) + np.sqrt((a**2 + 4 * a * bias**2))
+    x_lim_minus = -a / (2 * c) - np.sqrt((a**2 + 4 * a * bias**2))
+    x_lim = max(x_lim_plus, x_lim_minus)
 
-    y_line_pos = np.zeros(len(x_points))
-    y_line_neg = np.zeros(len(x_points))
+    y_lim_plus = -b / (2 * d) + np.sqrt((b**2 + 4 * b * bias**2))
+    y_lim_minus = -b / (2 * d) - np.sqrt((b**2 + 4 * b * bias**2))
+    y_lim = max(y_lim_plus, y_lim_minus)
 
-    for i in range(len(x_points)):
-        y_line_pos[i] = ellipse_equation(theta, bias, x_points[i])[0]
-        y_line_neg[i] = ellipse_equation(theta, bias, x_points[i])[1]
+    # y_line_pos = np.zeros(len(x_points))
+    # y_line_neg = np.zeros(len(x_points))
+
+    # for i in range(len(x_points)):
+    #     y_line_pos[i] = ellipse_equation(theta, bias, x_points[i])[0]
+    #     y_line_neg[i] = ellipse_equation(theta, bias, x_points[i])[1]
+
+    x = np.linspace(-x_lim, x_lim, 1000)
+    y = np.linspace(-x_lim, x_lim, 1000)
+    x, y = np.meshgrid(x, y)
+    ellipse = a * x + b * y + c * x**2 + d * y**2 - bias**2
 
     y_lim = d
 
@@ -60,7 +69,7 @@ def create_labeled_dataset(w, M, show_plot=False):
     plt.figsize = (20, 20)
 
     for i in range(M):
-        if separating_function(theta, bias, D[i]) >= 0:
+        if separating_function(theta, -(bias**2), D[i]) >= 0:
             labeled_dataset[i] = np.array([D[i, 0], D[i, 1], 1])
 
             if show_plot:
@@ -73,13 +82,15 @@ def create_labeled_dataset(w, M, show_plot=False):
                 plt.scatter(D[i, 0], D[i, 1], color="red")
 
     if show_plot:
-        plt.plot(x_points, y_line_pos, color="green", linestyle="--", label="Separating Function")
-        plt.plot(x_points, y_line_neg, color="green", linestyle="--")
-        plt.xlabel("Feature 1")
-        plt.ylabel("Feature 2")
+        plt.contour(x, y, ellipse, levels=[0], colors="green", linestyles="--")
+        plt.xlabel("x")
+        plt.ylabel("y")
+        plt.axhline(0, color="black", linewidth=0.5)
+        plt.axvline(0, color="black", linewidth=0.5)
+        plt.grid(color="gray", linestyle="--", linewidth=0.5)
         plt.title(f"Dataset with Nonlinear Separating Function. Number of points: {M}")
-        plt.legend()
         plt.grid(True)
+        plt.gca().set_aspect("equal", adjustable="box")
         plt.show()
 
     return labeled_dataset
@@ -118,7 +129,7 @@ def cost_gradient(theta, points):
     return gradient
 
 
-def centralized_gradient(dataset):
+def centralized_gradient(dataset, real_theta):
     intermediate_results = []
     result = minimize(
         fun=cost,
@@ -147,16 +158,16 @@ def centralized_gradient(dataset):
 
     plt.tight_layout()
 
-    plot_results(dataset, result.x, "Parameters found by centralized gradient")
+    plot_results(dataset, result.x, real_theta, "Parameters found by centralized gradient")
 
 
-def plot_results(dataset, theta, title):
+def plot_results(dataset, theta_hat, real_theta, title):
     print(
-        f"Parameters: a = {theta[0]:.2f}, b = {theta[1]:.2f}, c = {theta[2]:.2f}, d = {theta[3]:.2f}, bias = {theta[4]:.2f}, e = {np.sqrt(-theta[4]):.2f}"
+        f"Parameters: a = {theta_hat[0]:.2f}, b = {theta_hat[1]:.2f}, c = {theta_hat[2]:.2f}, d = {theta_hat[3]:.2f}, e = {np.sqrt(theta_hat[4]):.2f}"
     )
-    print(f"Classification error: {classification_error(dataset, theta)}")
+    print(f"Classification error: {classification_error(dataset, theta_hat)}")
 
-    w, bias = theta[:4], theta[4]
+    w, bias = theta_hat[:4], theta_hat[4]
 
     # Plot the labeled dataset
     plt.figure(figsize=(8, 6))
@@ -175,6 +186,14 @@ def plot_results(dataset, theta, title):
 
     plt.plot(x_1, y_line_pos, color="green", linestyle="--", label="Separating Function")
     plt.plot(x_1, y_line_neg, color="green", linestyle="--")
+    plt.plot(
+        x_1,
+        ellipse_equation(real_theta[:4], real_theta[4], x_1)[0],
+        color="black",
+        linestyle="--",
+        label="Real Separating Function",
+    )
+    plt.plot(x_1, ellipse_equation(real_theta[:4], real_theta[4], x_1)[1], color="black", linestyle="--")
     plt.xlabel("Feature 1")
     plt.ylabel("Feature 2")
     plt.title(title)

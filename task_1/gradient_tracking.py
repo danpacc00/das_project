@@ -60,14 +60,8 @@ class GradientTracking:
 
             print(f"Iteration: #{kk}, Cost: {self.cost[kk]:.2f}, Gradient Magnitude: {self.gradient_magnitude[kk]:.2f}")
 
-            # if self.gradient_magnitude[kk] < 1e-6:
-            #     print("Converged")
-            #     break
-
-            # Take the gradient magnitude from the last 10 iterations and check if it's not changing a lot, then stop
-            if kk > 10 and np.std(self.gradient_magnitude[kk - 10 : kk]) < 1e-2:
+            if self.gradient_magnitude[kk] < 1e-3:
                 print("Converged")
-
-                return zz[:kk, :, :], self.cost[:kk], self.gradient_magnitude[:kk]
+                break
 
         return zz[:kk, :, :], self.cost[:kk], self.gradient_magnitude[:kk]

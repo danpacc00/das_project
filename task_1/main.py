@@ -54,18 +54,20 @@ def main():
 
     # Task 1.2
     theta_list = [
-        np.random.uniform(0, 20, size=5),
-        np.array((9.0, 2.0, 1.0, 5.0, 0.5)),
+        np.random.uniform(0, 10, size=5).round(),
+        np.array((9.0, 2.0, 1.0, 5.0, 10.5)),
         np.array((9.0, 2.0, 1.0, -5.0, 0.5)),
     ]
     dimension = theta_list[0].shape[0]
     datasets = []
 
     for theta in theta_list:
-        datasets.append(create_labeled_dataset(theta, M=np.random.randint(500, 1000), show_plot=False))
+        print(f"Theta: {theta}")
+        print("theta shape", theta.shape)
+        datasets.append(create_labeled_dataset(theta, M=np.random.randint(500, 1000), show_plot=True))
 
-    for dataset in datasets:
-        centralized_gradient(dataset)
+    for i, dataset in enumerate(datasets):
+        centralized_gradient(dataset, theta_list[i])
 
     # Task 1.3
     for i, dataset in enumerate(datasets):
@@ -77,8 +79,8 @@ def main():
 
         graph = nx.complete_graph(NN)
 
-        zz0 = np.zeros(dimension)
-        # zz0 = np.array([9, 2, 1, 5, 0.5]) + np.array([0.1, 0.1, 0.1, 0.1, 0.1]) #Perturbare random con magnitude abbastanza importante, anche 50/60%
+        # zz0 = np.zeros(dimension)
+        zz0 = theta_list[i] + theta_list[i] * 0.7
 
         zz, cost, gradient_magnitude = gt.run(graph, d=dimension, zz0=zz0)
 
@@ -117,7 +119,7 @@ def main():
             plt.grid()
             plt.show()
 
-            plot_results(dataset, zz[-1, 0, :], title="Result using parameters by Gradient Tracking")
+            plot_results(dataset, zz[-1, 0, :], theta_list[i], title="Result using parameters by Gradient Tracking")
 
 
 if __name__ == "__main__":
