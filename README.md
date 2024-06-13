@@ -32,6 +32,7 @@ This is the repository of the DAS project made by two fucking awesome guys
 
 1. Migliorare le simulazioni (M)
 2. Raffinare l'implementazione (D + M)
+3. Implementare costo in ROS
 
 ## Others
 

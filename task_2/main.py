@@ -5,10 +5,10 @@ import networkx as nx
 import numpy as np
 import ros.src.surveillance.surveillance.phi as phi
 from ros.src.surveillance.surveillance.aggregative_tracking import AggregativeTracking
-from ros.src.surveillance.surveillance.costs_fn import CorridorCost, SurveillanceCost
-from ros.src.surveillance.surveillance.functions import animation2
+from ros.src.surveillance.surveillance.costs_fn import CorridorCost, CorridorCostV2, SurveillanceCost
+from ros.src.surveillance.surveillance.functions import animation, animation2
 
-# np.random.seed(0)
+np.random.seed(0)
 
 
 def main():
@@ -18,6 +18,33 @@ def main():
     argparser.add_argument("--no-plots", action="store_true", default=False)
 
     args = argparser.parse_args()
+
+    # targets = np.random.rand(args.nodes, 2) * 10 - 5
+
+    # cost = SurveillanceCost(tradeoff=1.0)
+    # algo = AggregativeTracking(cost, phi.Identity(), max_iters=args.iters, alpha=1e-2)
+
+    # graph = nx.path_graph(args.nodes)
+    # zz, cost, gradient_magnitude, kk = algo.run(graph, np.zeros((args.nodes, 2)), targets, d=2)
+
+    # if not args.no_plots:
+    #     _, ax = plt.subplots(3, 1, figsize=(10, 10))
+    #     ax[0].plot(np.arange(zz.shape[0]), zz[:, :, 0])
+    #     ax[0].grid()
+    #     ax[0].set_title("Aggregative tracking")
+
+    #     ax[1].plot(np.arange(zz.shape[0] - 1), cost[:-1])
+    #     ax[1].grid()
+    #     ax[1].set_title("Cost")
+
+    #     ax[2].semilogy(np.arange(zz.shape[0] - 1), gradient_magnitude[1:])
+    #     ax[2].grid()
+    #     ax[2].set_title("Gradient magnitude")
+
+    #     plt.show()
+
+    #     plt.figure("Animation")
+    #     animation(zz, np.linspace(0, kk, kk), nx.adjacency_matrix(graph).toarray(), targets)
 
     # Corridor
 
@@ -50,13 +77,13 @@ def main():
     ).T
 
     initial_poses_list = [
+        np.column_stack((random_initial_poses[:, 0], random_initial_poses[:, 1] - y_offset)),
         random_initial_poses,
         np.column_stack((random_initial_poses[:, 0], random_initial_poses[:, 1] + y_offset)),
         np.column_stack((random_initial_poses[:, 0], random_initial_poses[:, 1] - y_offset)),
-        np.column_stack((random_initial_poses[:, 0], random_initial_poses[:, 1] - y_offset)),
     ]
 
-    nobstacles = 250
+    nobstacles = 150
     obstacles = np.column_stack(
         (
             np.array(
@@ -71,18 +98,18 @@ def main():
                     np.linspace(bottom_wall["y"], bottom_wall["y"] - y_offset * 4, nobstacles),
                 )
             ),
-            np.array(
-                (
-                    np.linspace(top_wall["x_start"], top_wall["x_end"], nobstacles),
-                    np.tile(top_wall["y"], nobstacles),
-                )
-            ),
-            np.array(
-                (
-                    np.linspace(bottom_wall["x_start"], bottom_wall["x_end"], nobstacles),
-                    np.tile(bottom_wall["y"], nobstacles),
-                )
-            ),
+            # np.array(
+            #     (
+            #         np.linspace(top_wall["x_start"], top_wall["x_end"], nobstacles),
+            #         np.tile(top_wall["y"], nobstacles),
+            #     )
+            # ),
+            # np.array(
+            #     (
+            #         np.linspace(bottom_wall["x_start"], bottom_wall["x_end"], nobstacles),
+            #         np.tile(bottom_wall["y"], nobstacles),
+            #     )
+            # ),
         )
     ).T
 
@@ -97,7 +124,7 @@ def main():
         # plt.ylim(-50, 50)  # Set the y-axis limits
         # plt.show()
 
-        cost = CorridorCost(obstacles=obstacles, alpha=0.8, beta=10, gamma=0.5, dd=1)
+        cost = CorridorCost(obstacles=obstacles, alpha=0.2, beta=1.0, gamma=1.0, dd=1)
         algo = AggregativeTracking(cost, phi.Identity(), max_iters=args.iters, alpha=1e-2)
 
         graph = nx.path_graph(args.nodes)
@@ -119,16 +146,35 @@ def main():
 
             plt.show()
 
-            animation2(
-                zz,
-                np.linspace(0, kk, kk),
-                nx.adjacency_matrix(graph).toarray(),
-                targets_list[i],
-                top_wall,
-                bottom_wall,
-                middle,
-                obstacles,
-            )
+            # plot trajectories
+            for j in range(args.nodes):
+                plt.plot(
+                    zz[:, j, 0],
+                    zz[:, j, 1],
+                    linewidth=1,
+                    color="black",
+                    linestyle="dashed",
+                    label=f"Trajectory {j}",
+                )
+
+                plt.scatter(zz[-1, j, 0], zz[-1, j, 1], color="orange", label=f"Final position {j}", marker="x")
+
+                plt.plot(targets_list[i][:, 0], targets_list[i][:, 1], "bx")
+                plt.plot(initial_poses_list[i][:, 0], initial_poses_list[i][:, 1], "ro")
+                plt.plot(obstacles[:, 0], obstacles[:, 1], "o", color="gray")
+
+            plt.show()
+
+            # animation2(
+            #     zz,
+            #     np.linspace(0, kk, kk),
+            #     nx.adjacency_matrix(graph).toarray(),
+            #     targets_list[i],
+            #     top_wall,
+            #     bottom_wall,
+            #     middle,
+            #     obstacles,
+            # )
 
 
 if __name__ == "__main__":
