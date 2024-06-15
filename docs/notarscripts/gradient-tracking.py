@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 np.random.seed(0)
-NN = 10
+NN = 4
 
 I_NN = np.eye(NN)
 while 1:
@@ -16,6 +16,8 @@ while 1:
     # else:
     # continue
 
+print(Adj)
+
 
 AA = np.zeros(shape=(NN, NN))
 
@@ -27,6 +29,8 @@ for ii in range(NN):
         AA[ii, jj] = 1 / (1 + max([deg_ii, deg_jj]))
 
 AA += I_NN - np.diag(np.sum(AA, axis=0))
+
+print(AA)
 
 if 0:
     print(np.sum(AA, axis=0))
@@ -55,7 +59,7 @@ cost_gt = np.zeros((MAXITERS))
 alpha = 1e-2
 
 for kk in range(MAXITERS - 1):
-    print(f"iter {kk}")
+    # print(f"iter {kk}")
 
     # Distributed gradient
     for ii in range(NN):

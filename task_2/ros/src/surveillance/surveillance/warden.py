@@ -128,13 +128,10 @@ class Warden(Node):
 
         self._zz.append(self._zz[kk - 1] - self.alpha * (li_nabla_1 + self._vv[ii][kk - 1] * phi_grad))
 
-        self._ss[ii].append(
-            self.weights[ii] * self._ss[ii][kk - 1] + self._phi_fn(self._zz[kk])[0] - self._phi_fn(self._zz[kk - 1])[0]
-        )
+        self._ss[ii].append(self._phi_fn(self._zz[kk])[0] - self._phi_fn(self._zz[kk - 1])[0])
         self._vv[ii].append(
-            self.weights[ii] * self._vv[ii][kk - 1]
-            + self._cost_fn(self._zz[kk])[2]
-            - self._cost_fn(self._zz[kk - 1])[2]
+            self._cost_fn(self.target_position, self._zz[kk], self._ss[ii][kk])[2]
+            - self._cost_fn(self.target_position, self._zz[kk - 1], self._ss[ii][kk - 1])[2]
         )
 
         self._ss[ii][kk] += self.weights[ii] * self._ss[ii][kk - 1]

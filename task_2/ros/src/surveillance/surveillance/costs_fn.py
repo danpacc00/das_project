@@ -223,3 +223,80 @@ class CorridorCostV5:
         li = li_target + li_sigma + li_barrier + li_obstacles
 
         return li, nabla_1, nabla_2
+
+# Works well with more than 10000 iterations
+class CorridorCostV6:
+    def __init__(self, alpha, obstacles):
+        self.alpha = alpha
+        self.kk = 0
+        self.epsilon = 0.1
+        self.obstacles = obstacles
+
+    def __call__(self, target, zz, sigma):
+        li_target = self.alpha * np.linalg.norm(zz - target) ** 2
+        li_sigma = np.linalg.norm(zz - sigma) ** 2
+
+        li_barrier = 0
+        for obstacle in self.obstacles:
+            li_barrier += -np.log(np.linalg.norm(zz - obstacle) ** 2 - 1)
+
+        li = li_target + li_sigma + li_barrier
+        if self.kk % 10 == 0:
+            self.epsilon = self.epsilon / 10
+
+        nabla_1 = 2 * self.alpha * (zz - target) + 2 * (zz - sigma)
+        for obstacle in self.obstacles:
+            nabla_1 += -2 * self.epsilon * (zz - obstacle) / (np.linalg.norm(zz - obstacle) ** 2 - 1)
+        nabla_2 = 2 * (zz - sigma)
+
+        self.kk += 1
+        return li, nabla_1, nabla_2
+    
+class CorridorCostV6:
+    def __init__(self, alpha, obstacles):
+        self.alpha = alpha
+        self.kk = 0
+        self.epsilon = 0.1
+        self.obstacles = obstacles
+
+    def __call__(self, target, zz, sigma):
+        li_target = self.alpha * np.linalg.norm(zz - target) ** 2
+        li_sigma = np.linalg.norm(zz - sigma) ** 2
+
+        li_barrier = 0
+        for obstacle in self.obstacles:
+            li_barrier += -np.log(np.linalg.norm(zz - obstacle) ** 2 - 1)
+
+        li = li_target + li_sigma + li_barrier
+        self.epsilon = self.epsilon / 10
+
+        nabla_1 = 2 * self.alpha * (zz - target) + 2 * (zz - sigma)
+        for obstacle in self.obstacles:
+            nabla_1 += -2 * (zz - obstacle) / (np.linalg.norm(zz - obstacle) ** 2 - 1)
+        nabla_2 = 2 * (zz - sigma)
+
+        self.kk += 1
+        return li, nabla_1, nabla_2
+    
+class CorridorCostV7:
+    def __init__(self, alpha):
+        self.alpha = alpha
+        self.kk = 0
+        self.epsilon = 0.1
+
+    def __call__(self, target, zz, sigma):
+        li_target = self.alpha * np.linalg.norm(zz - target) ** 2
+        li_sigma = np.linalg.norm(zz - sigma) ** 2
+
+        g = 0.01 * zz[0] ** 2 + 10 - zz[1]
+        li_barrier = -np.log(g)
+
+        li = li_target + li_sigma + li_barrier
+        self.epsilon = self.epsilon / 10
+
+        nabla_1 = 2 * self.alpha * (zz - target) + 2 * (zz - sigma)
+        nabla_1 += np.array([-0.02 * zz[0], 1]) / g
+        nabla_2 = 2 * (zz - sigma)
+
+        self.kk += 1
+        return li, nabla_1, nabla_2

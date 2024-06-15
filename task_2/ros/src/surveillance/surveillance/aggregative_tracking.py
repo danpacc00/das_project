@@ -30,7 +30,8 @@ class AggregativeTracking:
         AA += np.eye(nn) - np.diag(np.sum(AA, axis=0))
 
         zz = np.zeros((self.max_iters, nn, d))
-        zz[0, :, :] = initial_poses
+        for ii in range(nn):
+            zz[0, ii, :] = initial_poses[ii]
 
         ss = np.zeros((self.max_iters, nn, d))
         vv = np.zeros((self.max_iters, nn, d))
@@ -39,29 +40,31 @@ class AggregativeTracking:
             ss[0, ii, :] = self.phi_fn(zz[0, ii, :])[0]
             vv[0, ii, :] = self.cost_fn(targets[ii], zz[0, ii, :], ss[0, ii, :])[2]
 
-        for kk in range(1, self.max_iters):
+        for kk in range(self.max_iters - 1):
             grad = np.zeros((d, d))
 
             for ii in range(nn):
+                N_ii = np.nonzero(Adj[ii])[0]
+                ss[kk + 1, ii, :] += AA[ii, ii] * ss[kk, ii, :]
+                vv[kk + 1, ii, :] += AA[ii, ii] * vv[kk, ii, :]
+                for jj in N_ii:
+                    ss[kk + 1, ii, :] += AA[ii, jj] * ss[kk, jj, :]
+                    vv[kk + 1, ii, :] += AA[ii, jj] * vv[kk, jj, :]
+
                 target = targets[ii]
-                li_nabla_1 = self.cost_fn(target, zz[kk - 1, ii, :], ss[kk - 1, ii, :])[1]
-                _, phi_grad = self.phi_fn(zz[kk - 1, ii, :])
+                li_nabla_1 = self.cost_fn(target, zz[kk, ii, :], ss[kk, ii, :])[1]
+                _, phi_grad = self.phi_fn(zz[kk, ii, :])
 
-                zz[kk, ii, :] = zz[kk - 1, ii, :] - self.alpha * (li_nabla_1 + phi_grad * vv[kk - 1, ii, :])
+                zz[kk + 1, ii, :] = zz[kk, ii, :] - self.alpha * (li_nabla_1 + phi_grad * vv[kk, ii, :])
 
-                ss[kk, ii, :] += self.phi_fn(zz[kk, ii, :])[0] - self.phi_fn(zz[kk - 1, ii, :])[0]
-                vv[kk, ii, :] += (
-                    self.cost_fn(target, zz[kk, ii, :], ss[kk, ii, :])[2]
-                    - self.cost_fn(target, zz[kk - 1, ii, :], ss[kk - 1, ii, :])[2]
+                ss[kk + 1, ii, :] += self.phi_fn(zz[kk + 1, ii, :])[0] - self.phi_fn(zz[kk, ii, :])[0]
+                vv[kk + 1, ii, :] += (
+                    self.cost_fn(target, zz[kk + 1, ii, :], ss[kk + 1, ii, :])[2]
+                    - self.cost_fn(target, zz[kk, ii, :], ss[kk, ii, :])[2]
                 )
 
-                N_ii = np.nonzero(Adj[ii])[0]
-                for jj in N_ii:
-                    ss[kk, ii, :] += AA[ii, jj] * ss[kk - 1, jj, :]
-                    vv[kk, ii, :] += AA[ii, jj] * vv[kk - 1, jj, :]
-
-                grad += self.cost_fn(target, zz[kk, ii, :], ss[kk, ii, :])[1:]
-                cost = self.cost_fn(target, zz[kk, ii, :], ss[kk, ii, :])[0]
+                cost, li_nabla_1, li_nabla_2 = self.cost_fn(target, zz[kk + 1, ii, :], ss[kk + 1, ii, :])
+                grad += li_nabla_1 + li_nabla_2
                 self.cost[kk] += cost
 
             self.gradient_magnitude[kk] += np.linalg.norm(grad)
