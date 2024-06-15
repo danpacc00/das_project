@@ -44,6 +44,12 @@ class CorridorCost:
         nabla_1 += 2 * self.alpha * (zz - target) + 10 * (zz - self.corridor) + 2 * self.gamma * (zz - sigma)
         nabla_2 = 2 * self.gamma * (zz - sigma)
 
+        print("nabla_1: ", nabla_1)
+        print("nabla_2: ", nabla_2)
+
+        print("nabla_1 shape: ", nabla_1.shape)
+        print("nabla_2 shape: ", nabla_2.shape)
+
         return li, nabla_1, nabla_2
 
 
@@ -99,37 +105,58 @@ class CorridorCostV3:
         self.dd = dd
         self.obstacles = obstacles
 
-        # find maximum value of obstacles along y
-        max_y = np.max(self.obstacles[:, 1])
-        min_y = np.min(self.obstacles[:, 1])
+    def __call__(self, target, zz, sigma):
+        li_target = self.alpha * np.linalg.norm(zz - target) ** 2
+        li_sigma = self.gamma * np.linalg.norm(zz - sigma) ** 2
 
-        # self.mean_y = abs((max_y + min_y)) / 2
-        self.mean_y = 0
+        nabla_1 = 0
+
+        c = 1
+
+        li_feasible = c * zz[1] ** 2
+
+        li = li_target + li_sigma + li_feasible
+
+        nabla_1 += 2 * self.alpha * (zz - target) + 2 * self.gamma * (zz - sigma) + 2 * c * zz[1]
+        nabla_2 = 2 * self.gamma * (zz - sigma)
+
+        return li, nabla_1, nabla_2
+
+
+class CorridorCostV4:
+    def __init__(self, alpha, beta, gamma, dd, obstacles):
+        self.alpha = alpha
+        self.beta = beta
+        self.gamma = gamma
+        self.dd = dd
+        self.obstacles = obstacles
 
     def __call__(self, target, zz, sigma):
         li_target = self.alpha * np.linalg.norm(zz - target) ** 2
         li_sigma = self.gamma * np.linalg.norm(zz - sigma) ** 2
 
-        li_corridor = np.linalg.norm(sigma[1] - self.mean_y) ** 2
+        height = 10
+        width = 1e-6
+        exp = 8
 
-        li_obstacles = 0
-        nabla_1 = 0
+        top_barrier = -(width * zz[0] ** exp) - height + zz[1]
+        bottom_barrier = -(width * zz[0] ** exp) - height - zz[1]
 
-        # find the obstacles which have the minimum distance to the agent
+        li_barrier = -np.log(-top_barrier)  # + -np.log(-bottom_barrier)
 
-        obstacle_seen = list(
-            map(lambda x: x[1], sorted([(np.linalg.norm(zz - o) ** 2, o) for o in self.obstacles], key=lambda x: x[0]))
-        )
+        # li_barrier = 1/top_barrier**2
 
-        for obstacle in obstacle_seen:
-            li_obstacles_tmp = -0.5 * np.log(np.linalg.norm(zz - obstacle) ** 2 - self.dd)
+        li = li_target + li_sigma + li_barrier
 
-            li_obstacles += li_obstacles_tmp
+        nabla_1 = 2 * self.alpha * (zz - target) + 2 * self.gamma * (zz - sigma)
+        nabla_2 = 2 * self.gamma * (zz - sigma)
 
-            nabla_1 += -2 * 0.5 * (zz - obstacle) / (np.linalg.norm(zz - obstacle) ** 2 - self.dd)
+        nabla_1_1_top = -(-exp * width * zz[0] ** (exp - 1)) / -top_barrier
+        nabla_1_2_top = -(1) / -top_barrier
 
-        li = li_target + li_sigma + self.beta * li_obstacles + li_corridor
-        nabla_1 += 2 * self.alpha * (zz - target) + 2 * self.gamma * (zz - sigma)
-        nabla_2 = 2 * self.gamma * (zz - sigma) + 2 * np.linalg.norm(sigma[1] - self.mean_y)
+        # nabla_1_1_bottom = -(-exp * width * zz[0] ** (exp - 1)) / -bottom_barrier
+        # nabla_1_2_bottom = -(-1) / -bottom_barrier
+
+        nabla_1 += np.array([nabla_1_1_top, nabla_1_2_top])  # + np.array([nabla_1_1_bottom, nabla_1_2_bottom])
 
         return li, nabla_1, nabla_2

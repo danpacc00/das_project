@@ -5,7 +5,13 @@ import networkx as nx
 import numpy as np
 import ros.src.surveillance.surveillance.phi as phi
 from ros.src.surveillance.surveillance.aggregative_tracking import AggregativeTracking
-from ros.src.surveillance.surveillance.costs_fn import CorridorCost, CorridorCostV2, SurveillanceCost
+from ros.src.surveillance.surveillance.costs_fn import (
+    CorridorCost,
+    CorridorCostV2,
+    CorridorCostV3,
+    CorridorCostV4,
+    SurveillanceCost,
+)
 from ros.src.surveillance.surveillance.functions import animation, animation2
 
 np.random.seed(0)
@@ -111,8 +117,8 @@ def main():
     y_offset = 20
     random_pos_target = np.array(
         (
-            np.random.rand(args.nodes) * 10 + top_wall["x_end"] * 10 + x_offset,
-            np.random.rand(args.nodes) * 10,
+            np.random.rand(args.nodes) * top_wall["x_end"] * 10,
+            np.random.rand(args.nodes) * 40,
         )
     ).T
 
@@ -126,13 +132,13 @@ def main():
     random_initial_poses = np.array(
         (
             np.random.rand(args.nodes) * top_wall["x_start"] * 10 + top_wall["x_start"] - x_offset,
-            np.random.rand(args.nodes) * 5,
+            np.random.rand(args.nodes) * 10,
         )
     ).T
 
     initial_poses_list = [
-        np.column_stack((random_initial_poses[:, 0], random_initial_poses[:, 1] - y_offset)),
         random_initial_poses,
+        np.column_stack((random_initial_poses[:, 0], random_initial_poses[:, 1] - y_offset)),
         np.column_stack((random_initial_poses[:, 0], random_initial_poses[:, 1] + y_offset)),
         np.column_stack((random_initial_poses[:, 0], random_initial_poses[:, 1] - y_offset)),
     ]
@@ -167,18 +173,8 @@ def main():
         )
     ).T
 
-    for i in range(2, 3):
-        # plt.figure("Corridor", figsize=(20, 20))
-
-        # plt.plot(targets_list[i][:, 0], targets_list[i][:, 1], "bx")
-        # plt.plot(initial_poses_list[i][:, 0], initial_poses_list[i][:, 1], "ro")
-        # plt.plot(obstacles[:, 0], obstacles[:, 1], "o")
-
-        # plt.xlim(-50, 50)  # Set the x-axis limits
-        # plt.ylim(-50, 50)  # Set the y-axis limits
-        # plt.show()
-
-        cost = CorridorCostV2(obstacles=obstacles, alpha=0.3, beta=1.0, gamma=1.0, dd=1)
+    for i in range(0, 1):
+        cost = CorridorCostV4(obstacles=obstacles, alpha=0.1, beta=1.0, gamma=0.5, dd=1)
         algo = AggregativeTracking(cost, phi.Identity(), max_iters=args.iters, alpha=1e-2)
 
         graph = nx.path_graph(args.nodes)
@@ -215,20 +211,28 @@ def main():
 
                 plt.plot(targets_list[i][:, 0], targets_list[i][:, 1], "bx")
                 plt.plot(initial_poses_list[i][:, 0], initial_poses_list[i][:, 1], "ro")
-                plt.plot(obstacles[:, 0], obstacles[:, 1], "o", color="gray")
 
+                barrier_top_x = np.linspace(-15, 15, 1000)
+                barrier_top_y = (1e-6 * barrier_top_x**8) + 10
+                plt.plot(barrier_top_x, barrier_top_y, "k")
+
+                barrier_bottom_x = np.linspace(-15, 15, 1000)
+                barrier_bottom_y = -(1e-6 * barrier_bottom_x**8) - 10
+                plt.plot(barrier_bottom_x, barrier_bottom_y, "k")
+
+            plt.ylim(-60, 60)
             plt.show()
 
-            # animation2(
-            #     zz,
-            #     np.linspace(0, kk, kk),
-            #     nx.adjacency_matrix(graph).toarray(),
-            #     targets_list[i],
-            #     top_wall,
-            #     bottom_wall,
-            #     middle,
-            #     obstacles,
-            # )
+        # animation2(
+        #     zz,
+        #     np.linspace(0, kk, kk),
+        #     nx.adjacency_matrix(graph).toarray(),
+        #     targets_list[i],
+        #     top_wall,
+        #     bottom_wall,
+        #     middle,
+        #     obstacles,
+        # )
 
 
 if __name__ == "__main__":
