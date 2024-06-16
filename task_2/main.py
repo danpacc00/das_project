@@ -13,6 +13,7 @@ from ros.src.surveillance.surveillance.costs_fn import (
     CorridorCostV5,
     CorridorCostV6,
     CorridorCostV7,
+    CorridorCostV8,
     SurveillanceCost,
 )
 from ros.src.surveillance.surveillance.functions import animation, animation2
@@ -121,28 +122,28 @@ def main():
     random_pos_target = np.array(
         (
             np.random.rand(args.nodes) * top_wall["x_end"] * 10,
-            np.random.rand(args.nodes) * 40,
+            np.random.rand(args.nodes) * 40 - 20,
         )
     ).T
 
     targets_list = [
         random_pos_target,
-        np.column_stack((random_pos_target[:, 0], random_pos_target[:, 1] - y_offset)),
         np.column_stack((random_pos_target[:, 0], random_pos_target[:, 1] + y_offset)),
+        np.column_stack((random_pos_target[:, 0], random_pos_target[:, 1] - y_offset)),
         np.column_stack((random_pos_target[:, 0], random_pos_target[:, 1] + y_offset)),
     ]
 
     random_initial_poses = np.array(
         (
             np.random.rand(args.nodes) * top_wall["x_start"] * 10 + top_wall["x_start"] - x_offset,
-            np.random.rand(args.nodes) * 10,
+            np.random.rand(args.nodes) * 10 - 5,
         )
     ).T
 
     initial_poses_list = [
         random_initial_poses,
-        np.column_stack((random_initial_poses[:, 0], random_initial_poses[:, 1] - y_offset)),
         np.column_stack((random_initial_poses[:, 0], random_initial_poses[:, 1] + y_offset)),
+        np.column_stack((random_initial_poses[:, 0], random_initial_poses[:, 1] - y_offset)),
         np.column_stack((random_initial_poses[:, 0], random_initial_poses[:, 1] - y_offset)),
     ]
 
@@ -177,12 +178,12 @@ def main():
     ).T
 
     for i in range(len(targets_list)):
-        x = np.linspace(-30, 30, 100)
-        y = (0.01 * x ** 2 + 10)
-        obstacles = np.column_stack((x, y))
+        x = np.linspace(-60, 60, 100)
+        g_1 = (1e-5 * x ** 4 + 2)
+        g_2 = -(1e-5 * x ** 4 + 2)
         # cost = CorridorCostV6(alpha=1.0, obstacles=obstacles)
-        cost = CorridorCostV7(alpha=1.0)
-        algo = AggregativeTracking(cost, phi.Identity(), max_iters=args.iters, alpha=1e-4)
+        cost = CorridorCostV8(alpha=0.8)
+        algo = AggregativeTracking(cost, phi.Identity(), max_iters=args.iters, alpha=1e-3, gamma=1e-5)
 
         graph = nx.path_graph(args.nodes)
         zz, cost, gradient_magnitude, kk = algo.run(graph, initial_poses_list[i], targets_list[i], d=2)
@@ -220,7 +221,8 @@ def main():
                 plt.plot(initial_poses_list[i][:, 0], initial_poses_list[i][:, 1], "ro")
                 # plt.plot(obstacles[:, 0], obstacles[:, 1], "kx")
 
-                plt.plot(x, y, "g-")
+                plt.plot(x, g_1, "g-")
+                plt.plot(x, g_2, "g-")
 
             plt.ylim(-60, 60)
             plt.show()

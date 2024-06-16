@@ -300,3 +300,31 @@ class CorridorCostV7:
 
         self.kk += 1
         return li, nabla_1, nabla_2
+    
+class CorridorCostV8:
+    def __init__(self, alpha):
+        self.alpha = alpha
+        self.epsilon = 0.1
+
+    def __call__(self, target, zz, sigma, kk):
+        li_target = self.alpha * np.linalg.norm(zz - target) ** 2
+        li_sigma = np.linalg.norm(zz - sigma) ** 2
+
+        g_1 = 1e-5 * zz[0] ** 4 + 2 - zz[1]
+        g_2 = 1e-5 * zz[0] ** 4 + 2 + zz[1]
+        li_barrier = -np.log(g_1) + -np.log(g_2)
+
+        li = li_target + li_sigma + li_barrier
+
+        nabla_1 = 2 * self.alpha * (zz - target) + 2 * (zz - sigma)
+        nabla_1 += np.array([-1e-5 * 4 * zz[0] ** 3, 1]) / g_1
+        nabla_1 += np.array([-1e-5 * 4 * zz[0] ** 3, -1]) / g_2
+        nabla_2 = 2 * (zz - sigma)
+
+        return li, nabla_1, nabla_2
+    
+    def constraints(self, zz):
+        g_1 = 1e-5 * zz[0] ** 4 + 2 - zz[1]
+        g_2 = 1e-5 * zz[0] ** 4 + 2 + zz[1]
+
+        return np.array([-g_1, -g_2])
