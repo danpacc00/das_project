@@ -1,125 +1,129 @@
 import argparse
+import signal
+
+signal.signal(signal.SIGINT, signal.SIG_DFL)
 
 import matplotlib.pyplot as plt
 import networkx as nx
 import numpy as np
 from costs_fn import LogisticRegressionCost, QuadraticCost
-from dataset import centralized_gradient, create_labeled_dataset, plot_results
-from dataset import cost as opt_cost_fn
+from dataset import create_labeled_dataset, classification_error, centralized_gradient, cost
+import plot
 from gradient_tracking import GradientTracking
 
 np.random.seed(0)
-NN = 30
 
 
 def main():
     # Task 1.1
     argparser = argparse.ArgumentParser()
     argparser.add_argument("-n", "--nodes", type=int, default=10)
+    argparser.add_argument("-z", "--dimension", type=int, default=2)
     argparser.add_argument("-i", "--iters", type=int, default=1000)
     argparser.add_argument("-d", "--dataset", type=str, choices=["line", "ellipse"], default="ellipse")
     argparser.add_argument("--no-plots", action="store_true", default=False)
+    argparser.add_argument("--skip", type=str, default="")
 
     args = argparser.parse_args()
 
-    # graphs = [
-    #     {"name": "cycle", "fn": nx.cycle_graph},
-    #     {"name": "complete", "fn": nx.complete_graph},
-    #     {"name": "star", "fn": nx.star_graph},
-    # ]
+    skipped = [int(item) for item in args.skip.split(",")] if args.skip else []
 
-    # for graph_opt in graphs:
-    #     graph = graph_opt["fn"](args.nodes) if graph_opt["name"] != "star" else nx.star_graph(args.nodes - 1)
-
-    #     cost_fn = QuadraticCost(args.nodes, d=1)
-    #     gt = GradientTracking(cost_fn, max_iters=args.iters, alpha=1e-2)
-
-    #     zz, cost, gradient_magnitude = gt.run(graph, d=1, zz0=np.random.uniform(-5, 5, size=(args.nodes, 1)))
-
-    #     if not args.no_plots:
-    #         _, ax = plt.subplots(3, 1, figsize=(10, 10))
-    #         ax[0].plot(np.arange(zz.shape[0]), zz[:, :, 0])
-    #         ax[0].grid()
-    #         ax[0].set_title(f"{graph_opt['name']} - Gradient tracking")
-
-    #         ax[1].plot(np.arange(zz.shape[0] - 1), cost[:-1])
-    #         ax[1].grid()
-    #         ax[1].set_title(f"{graph_opt['name']} - Cost")
-
-    #         ax[2].semilogy(np.arange(zz.shape[0] - 1), gradient_magnitude[1:])
-    #         ax[2].grid()
-    #         ax[2].set_title(f"{graph_opt['name']} - Gradient magnitude")
-
-    #         plt.show()
-
-    # Task 1.2
-    theta_list = [
-        np.random.uniform(0, 10, size=5).round(),
-        np.array((9.0, 2.0, 1.0, 5.0, 10.5)),
-        np.array((9.0, 2.0, 1.0, -5.0, 0.5)),
+    graphs = [
+        {"name": "path", "fn": nx.path_graph},
+        {"name": "cycle", "fn": nx.cycle_graph},
+        {"name": "complete", "fn": nx.complete_graph},
+        {"name": "star", "fn": nx.star_graph},
     ]
-    dimension = theta_list[0].shape[0]
+
+    # Task 1.1
+    if not 1 in skipped:
+        for graph_opt in graphs:
+            graph = graph_opt["fn"](args.nodes - 1 if graph_opt["name"] == "star" else args.nodes)
+
+            cost_fn = QuadraticCost(args.nodes, d=args.dimension)
+            gt = GradientTracking(cost_fn, max_iters=args.iters, alpha=1e-2)
+
+            zz, cost, gradient_magnitude = gt.run(graph, d=args.dimension, zz0=np.random.uniform(-5, 5, size=(args.nodes, 2)))
+
+            if not args.no_plots:
+                fig, ax = plt.subplots(2, 2, figsize=(10, 10), )
+                fig.suptitle(f"Gradient tracking with Quadratic Cost Function (Graph = {graph_opt['name']}, N = {args.nodes}, d = {args.dimension}, Iterations = {args.iters})")
+
+                ax[0, 0].plot(np.arange(zz.shape[0]), zz[:, :, 0])
+                ax[0, 0].grid()
+                ax[0, 0].set_title("x0")
+
+                ax[0, 1].plot(np.arange(zz.shape[0]), zz[:, :, 1])
+                ax[0, 1].grid()
+                ax[0, 1].set_title("x1")
+
+                ax[1, 0].plot(np.arange(zz.shape[0] - 1), cost[:-1])
+                ax[1, 0].grid()
+                ax[1, 0].set_title("Cost")
+
+                ax[1, 1].semilogy(np.arange(zz.shape[0] - 1), gradient_magnitude[1:])
+                ax[1, 1].grid()
+                ax[1, 1].set_title("Gradient magnitude")
+
+                plt.show()
+
+    params_list = [
+        np.array((9.0, 2.0, 1.0, 5.0, 0.5)),
+        np.array((9.0, 2.0, 1.0, -5.0, 0.5)),
+        np.random.uniform(1, 10, size=5).round(),
+    ]
+    dimension = params_list[0].shape[0]
     datasets = []
 
-    for theta in theta_list:
-        print(f"Theta: {theta}")
-        print("theta shape", theta.shape)
-        datasets.append(create_labeled_dataset(theta, M=np.random.randint(500, 1000), show_plot=True))
-
-    for i, dataset in enumerate(datasets):
-        centralized_gradient(dataset, theta_list[i])
-
-    # Task 1.3
-    for i, dataset in enumerate(datasets):
-        # Split the dataset into NN groups
-        datasets = np.array_split(dataset, NN)
-
-        cost_fn = LogisticRegressionCost(datasets)
-        gt = GradientTracking(cost_fn, max_iters=args.iters, alpha=1e-4)
-
-        graph = nx.complete_graph(NN)
-
-        # zz0 = np.zeros(dimension)
-        zz0 = theta_list[i] + theta_list[i] * 0.7
-
-        zz, cost, gradient_magnitude = gt.run(graph, d=dimension, zz0=zz0)
-
+    for params in params_list:
+        npoints = np.random.randint(500, 1000)
+        dataset = create_labeled_dataset(params, M=npoints)
+        datasets.append(dataset)
+        
+        a, b, c, d, e = params
+        real_theta = np.array((a, b, c, d, -(e**2)))
+        initial_theta = np.zeros(dimension) # real_theta + real_theta * 0.7
+        real_classifier = {"params": params, "color": "green", "label": f"Real Separating Function (${a}x+{b}y+{c}x^2+{d}y^2={e}^2$)"}
+        
         if not args.no_plots:
-            _, ax = plt.subplots(4, 1, figsize=(10, 10))
-            ax[0].plot(np.arange(zz.shape[0]), zz[:, :, 0])
-            ax[0].grid()
-            ax[0].set_title("Gradient tracking of the Logistic Regression Cost Function")
-            ax[0].set_xlabel("Iterations")
-            ax[0].set_ylabel("$\\theta[0]$")
+            plot.dataset(f"Dataset with Nonlinear Separating Function. Number of points: {npoints}", dataset, real_classifier)
 
-            ax[1].plot(np.arange(zz.shape[0]), zz[:, :, 1])
-            ax[1].grid()
-            ax[1].set_title("Gradient tracking of the Logistic Regression Cost Function")
-            ax[1].set_xlabel("Iterations")
-            ax[1].set_ylabel("$\\theta[1]$")
+        # Task 1.2
+        if not 2 in skipped:
+            theta_hat, costs, gradient_magnitude = centralized_gradient(dataset, initial_theta=initial_theta.copy(), max_iters=args.iters, alpha=1e-4, d=dimension)
+            plot.results(dataset, theta_hat, real_theta, costs, gradient_magnitude)
 
-            ax[2].plot(np.arange(zz.shape[0] - 1), cost[:-1])
-            ax[2].grid()
-            ax[2].set_title("Evolution of the Cost Function")
-            ax[2].set_xlabel("Iterations")
-            ax[2].set_ylabel("Cost")
+        # Task 1.3
+        if not 3 in skipped:
+            datasets = np.array_split(dataset, args.nodes)
+            cost_fn = LogisticRegressionCost(datasets)
+            gt = GradientTracking(cost_fn, max_iters=args.iters, alpha=1e-4)
 
-            ax[3].semilogy(np.arange(zz.shape[0] - 1), gradient_magnitude[1:])
-            ax[3].grid()
-            ax[3].set_title("Gradient magnitude")
-            ax[3].set_xlabel("Iterations")
-            ax[3].set_ylabel("Evolution of the Norm of the Gradient")
-            plt.show()
+            for graph_opt in graphs:
+                graph = graph_opt["fn"](args.nodes - 1 if graph_opt["name"] == "star" else args.nodes)
 
-            opt_cost = opt_cost_fn(theta_list[i], dataset)
-            plt.semilogy(np.arange(args.iters - 2), np.abs(cost[:-1] - opt_cost))
-            plt.title("Difference between optimal and gradient tracking cost")
-            plt.xlabel("Iterations")
-            plt.ylabel("Cost")
-            plt.grid()
-            plt.show()
+                zz, costs, gradient_magnitude = gt.run(graph, d=dimension, zz0=initial_theta)
 
-            plot_results(dataset, zz[-1, 0, :], theta_list[i], title="Result using parameters by Gradient Tracking")
+                if not args.no_plots:
+                    axes = [
+                        plt.subplot2grid(shape=(2,6), loc=(0,0), colspan=2),
+                        plt.subplot2grid((2,6), (0,2), colspan=2),
+                        plt.subplot2grid((2,6), (0,4), colspan=2),
+                        plt.subplot2grid((2,6), (1,1), colspan=2),
+                        plt.subplot2grid((2,6), (1,3), colspan=2)
+                    ]
+                    for i, label in enumerate(['a', 'b', 'c', 'd', 'bias']):
+                        axes[i].plot(np.arange(zz.shape[0]), zz[:, :, i])
+                        axes[i].grid()
+                        axes[i].set_xlabel("Iterations")
+                        axes[i].set_ylabel(label)
+
+                    plt.subplots_adjust(hspace=0.25, wspace=1.0)
+                    plt.suptitle(f"Gradient tracking with Logistic Regression Cost Function (graph = {graph_opt['name']}, nodes = {args.nodes}, d = {dimension}, iters = {args.iters})")
+                    plt.show()
+
+                    theta_hat = zz[-1, 0, :]
+                    plot.results(dataset, theta_hat, real_theta, costs, gradient_magnitude, no_plots=args.no_plots)
 
 
 if __name__ == "__main__":

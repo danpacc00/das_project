@@ -34,23 +34,24 @@ class GradientTracking:
         for ii in range(nn):
             _, ss[0, ii, :] = self.cost_fn(ii, zz[0, ii, :])
 
-        for kk in range(1, self.max_iters):
+        for kk in range(self.max_iters - 1):
             grad = np.zeros(d)
             for ii in range(nn):
                 N_ii = np.nonzero(Adj[ii])[0]
 
-                zz[kk, ii, :] += AA[ii, ii] * zz[kk - 1, ii, :]
-                ss[kk, ii, :] += AA[ii, ii] * ss[kk - 1, ii, :]
+                zz[kk + 1, ii, :] += AA[ii, ii] * zz[kk, ii, :]
+                ss[kk + 1, ii, :] += AA[ii, ii] * ss[kk, ii, :]
                 for jj in N_ii:
-                    zz[kk, ii, :] += AA[ii, jj] * zz[kk - 1, jj, :]
-                    ss[kk, ii, :] += AA[ii, jj] * ss[kk - 1, jj, :]
+                    zz[kk + 1, ii, :] += AA[ii, jj] * zz[kk, jj, :]
+                    ss[kk + 1, ii, :] += AA[ii, jj] * ss[kk, jj, :]
 
-                zz[kk, ii, :] -= self.alpha * ss[kk - 1, ii, :]
+                _, grad_ell_ii_old = self.cost_fn(ii, zz[kk, ii, :])
 
-                _, grad_ell_ii_new = self.cost_fn(ii, zz[kk, ii, :])
+                zz[kk + 1, ii, :] -= self.alpha * 0.001 * np.linalg.norm(grad_ell_ii_old)  * ss[kk, ii, :]
 
-                _, grad_ell_ii_old = self.cost_fn(ii, zz[kk - 1, ii, :])
-                ss[kk, ii, :] += grad_ell_ii_new - grad_ell_ii_old
+                _, grad_ell_ii_new = self.cost_fn(ii, zz[kk + 1, ii, :])
+
+                ss[kk + 1, ii, :] += grad_ell_ii_new - grad_ell_ii_old
 
                 ell_ii_gt, _ = self.cost_fn(ii, zz[kk, ii, :])
                 self.cost[kk] += ell_ii_gt
