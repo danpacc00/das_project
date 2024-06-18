@@ -45,12 +45,11 @@ class GradientTracking:
                     zz[kk + 1, ii, :] += AA[ii, jj] * zz[kk, jj, :]
                     ss[kk + 1, ii, :] += AA[ii, jj] * ss[kk, jj, :]
 
-                _, grad_ell_ii_old = self.cost_fn(ii, zz[kk, ii, :])
-
-                zz[kk + 1, ii, :] -= self.alpha * 0.001 * np.linalg.norm(grad_ell_ii_old)  * ss[kk, ii, :]
+                zz[kk + 1, ii, :] -= self.alpha / (1 + kk // 10) * ss[kk, ii, :]
 
                 _, grad_ell_ii_new = self.cost_fn(ii, zz[kk + 1, ii, :])
 
+                _, grad_ell_ii_old = self.cost_fn(ii, zz[kk, ii, :])
                 ss[kk + 1, ii, :] += grad_ell_ii_new - grad_ell_ii_old
 
                 ell_ii_gt, _ = self.cost_fn(ii, zz[kk, ii, :])
@@ -61,7 +60,7 @@ class GradientTracking:
 
             print(f"Iteration: #{kk}, Cost: {self.cost[kk]:.2f}, Gradient Magnitude: {self.gradient_magnitude[kk]:.2f}")
 
-            if self.gradient_magnitude[kk] < 1e-3:
+            if self.gradient_magnitude[kk] < 1e-6:
                 print("Converged")
                 break
 

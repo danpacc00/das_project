@@ -41,13 +41,19 @@ def quadratic_fn(z, q, r):
     return 0.5 * q * z * z + r * z, q * z + r
 
 
+def is_positive_definite(matrix):
+    eigenvalues = np.linalg.eigvals(matrix)
+    return np.all(eigenvalues > 0)
+
+
 Q = np.random.uniform(size=(NN))
 R = np.random.uniform(size=(NN))
 
-MAXITERS = 1000
+MAXITERS = 50000
 # dd = 3
 ZZ = np.zeros((MAXITERS, NN))
 cost = np.zeros((MAXITERS))
+grad_mag = np.zeros((MAXITERS))
 
 ZZ_gt = np.zeros((MAXITERS, NN))
 SS_gt = np.zeros((MAXITERS, NN))
@@ -76,6 +82,7 @@ for kk in range(MAXITERS - 1):
         ell_ii, _ = quadratic_fn(ZZ[kk, ii], Q[ii], R[ii])
         cost[kk] += ell_ii
 
+    grad = np.zeros(NN)
     # gradient tracking
     for ii in range(NN):
         N_ii = np.nonzero(Adj[ii])[0]
@@ -86,7 +93,7 @@ for kk in range(MAXITERS - 1):
             ZZ_gt[kk + 1, ii] += AA[ii, jj] * ZZ_gt[kk, jj]
             SS_gt[kk + 1, ii] += AA[ii, jj] * SS_gt[kk, jj]
 
-        ZZ_gt[kk + 1, ii] -= alpha * np.exp(-0.1 * kk) * SS_gt[kk, ii]
+        ZZ_gt[kk + 1, ii] -= alpha * SS_gt[kk, ii]
 
         # print(Q[ii])
         _, grad_ell_ii_new = quadratic_fn(ZZ_gt[kk + 1, ii], Q[ii], R[ii])
@@ -95,6 +102,9 @@ for kk in range(MAXITERS - 1):
 
         ell_ii_gt, _ = quadratic_fn(ZZ_gt[kk, ii], Q[ii], R[ii])
         cost_gt[kk] += ell_ii_gt
+        grad[ii] += grad_ell_ii_new
+
+    grad_mag[kk] += np.linalg.norm(grad)
 
 
 fig, ax = plt.subplots()
@@ -107,10 +117,17 @@ ax.plot(np.arange(MAXITERS), ZZ_gt)
 ax.grid()
 ax.set_title("Gradient tracking")
 
+fig, ax = plt.subplots()
+ax.semilogy(np.arange(MAXITERS - 1), grad_mag[:-1])
+ax.grid()
+ax.set_title("Gradient magnitude")
+
 
 ZZ_opt = -np.sum(R) / np.sum(Q)
 opt_cost = 0.5 * np.sum(Q) * ZZ_opt**2 + np.sum(R) * ZZ_opt
+opt_grad = np.sum(Q) * ZZ_opt + np.sum(R)
 print(opt_cost)
+print(opt_grad)
 print(cost[-2])
 print(cost_gt[-2])
 

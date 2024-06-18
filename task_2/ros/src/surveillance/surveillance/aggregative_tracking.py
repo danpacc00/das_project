@@ -56,13 +56,16 @@ class AggregativeTracking:
                 li_nabla_1 = self.cost_fn(target, zz[kk, ii, :], ss[kk, ii, :], kk)[1]
                 _, phi_grad = self.phi_fn(zz[kk, ii, :])
 
-                constraints = self.cost_fn.constraints(zz[kk, ii, :])
-                if np.any(constraints**2 <= 1.0):
-                    alpha[ii] = np.max([alpha[ii] * 1e-3, 5e-5])
-                else:
-                    alpha[ii] = np.min([alpha[ii] * 1.1, self.initial_alpha])
+                if "constraints" in dir(self.cost_fn):
+                    constraints = self.cost_fn.constraints(zz[kk, ii, :])
+                    if np.any(constraints**2 <= 1.0):
+                        alpha[ii] = np.max([alpha[ii] * 1e-3, 5e-5])
+                    else:
+                        alpha[ii] = np.min([alpha[ii] * 1.1, self.initial_alpha])
 
-                zz[kk + 1, ii, :] = zz[kk, ii, :] - alpha[ii] * (li_nabla_1 + phi_grad * vv[kk, ii, :])
+                    zz[kk + 1, ii, :] = zz[kk, ii, :] - alpha[ii] * (li_nabla_1 + phi_grad * vv[kk, ii, :])
+                else:
+                    zz[kk + 1, ii, :] = zz[kk, ii, :] - self.initial_alpha * (li_nabla_1 + phi_grad * vv[kk, ii, :])
 
                 ss[kk + 1, ii, :] += self.phi_fn(zz[kk + 1, ii, :])[0] - self.phi_fn(zz[kk, ii, :])[0]
                 vv[kk + 1, ii, :] += (
@@ -76,10 +79,9 @@ class AggregativeTracking:
 
             self.gradient_magnitude[kk] += np.linalg.norm(grad)
 
-            # print(f"Iteration: #{kk}, Cost: {self.cost[kk]:.2f}, Gradient Magnitude: {self.gradient_magnitude[kk]:.2f}")
+            print(f"Iteration: #{kk}, Cost: {self.cost[kk]:.2f}, Gradient Magnitude: {self.gradient_magnitude[kk]:.2f}")
             if self.gradient_magnitude[kk] < 1e-2:
                 print(f"Converged at iteration {kk}")
                 break
-
 
         return zz[:kk, :, :], self.cost[:kk], self.gradient_magnitude[:kk], kk

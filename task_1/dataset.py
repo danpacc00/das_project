@@ -1,6 +1,6 @@
-from matplotlib.lines import Line2D
 import matplotlib.pyplot as plt
 import numpy as np
+from matplotlib.lines import Line2D
 from scipy.optimize import minimize
 
 
@@ -29,12 +29,13 @@ def ellipse_equation(w, bias, x):
 
     return y_positive, y_negative
 
-def create_labeled_dataset(theta, M):
-    a = theta[0]  # Stretch wrt x-axis
-    b = theta[1]  # Tilt wrt x-axis
-    c = theta[2]  # Coefficient for x^2. Controls the width of the ellipse
-    d = theta[3]  # Coefficient for y^2. Controls the height of the ellipse
-    e = theta[4]
+
+def create_labeled_dataset(params, M):
+    a = params[0]  # Stretch wrt x-axis
+    b = params[1]  # Tilt wrt x-axis
+    c = params[2]  # Coefficient for x^2. Controls the width of the ellipse
+    d = params[3]  # Coefficient for y^2. Controls the height of the ellipse
+    e = params[4]
 
     w = np.array([a, b, c, d])  # Weights
     bias = -(e**2)  # Bias
@@ -122,7 +123,7 @@ def centralized_gradient(dataset, initial_theta=None, alpha=1e-4, max_iters=1000
         if gradient_magnitude[ii] < 1e-2:
             break
 
-    return theta, costs[:ii + 1], gradient_magnitude[:ii + 1]
+    return theta, costs[: ii + 1], gradient_magnitude[: ii + 1]
 
 
 def classification_error(dataset, theta):

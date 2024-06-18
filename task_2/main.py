@@ -105,10 +105,8 @@ def main():
 
     #             plt.show()
 
-            # Task 2.1.3: Animation
-
-            # plt.figure("Animation")
-            # animation(zz, np.linspace(0, kk, kk), nx.adjacency_matrix(graph).toarray(), targets)
+    # plt.figure("Animation")
+    # animation(zz, np.linspace(0, kk, kk), nx.adjacency_matrix(graph).toarray(), targets)
 
     # Corridor
 
@@ -179,8 +177,8 @@ def main():
 
     for i in range(len(targets_list)):
         x = np.linspace(-60, 60, 100)
-        g_1 = (1e-5 * x ** 4 + 2)
-        g_2 = -(1e-5 * x ** 4 + 2)
+        g_1 = 1e-5 * x**4 + 2
+        g_2 = -(1e-5 * x**4 + 2)
         # cost = CorridorCostV6(alpha=1.0, obstacles=obstacles)
         cost = CorridorCostV8(alpha=0.8)
         algo = AggregativeTracking(cost, phi.Identity(), max_iters=args.iters, alpha=1e-3, gamma=1e-5)

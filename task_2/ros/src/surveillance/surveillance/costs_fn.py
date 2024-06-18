@@ -5,7 +5,7 @@ class SurveillanceCost:
     def __init__(self, tradeoff):
         self.tradeoff = tradeoff
 
-    def __call__(self, target, zz, sigma):
+    def __call__(self, target, zz, sigma, _):
         li = self.tradeoff * np.linalg.norm(zz - target) ** 2 + np.linalg.norm(zz - sigma) ** 2
         nabla_1 = 2 * self.tradeoff * (zz - target) + 2 * (zz - sigma)
         nabla_2 = 2 * (zz - sigma)
@@ -224,6 +224,7 @@ class CorridorCostV5:
 
         return li, nabla_1, nabla_2
 
+
 # Works well with more than 10000 iterations
 class CorridorCostV6:
     def __init__(self, alpha, obstacles):
@@ -251,7 +252,8 @@ class CorridorCostV6:
 
         self.kk += 1
         return li, nabla_1, nabla_2
-    
+
+
 class CorridorCostV6:
     def __init__(self, alpha, obstacles):
         self.alpha = alpha
@@ -277,7 +279,8 @@ class CorridorCostV6:
 
         self.kk += 1
         return li, nabla_1, nabla_2
-    
+
+
 class CorridorCostV7:
     def __init__(self, alpha):
         self.alpha = alpha
@@ -300,7 +303,8 @@ class CorridorCostV7:
 
         self.kk += 1
         return li, nabla_1, nabla_2
-    
+
+
 class CorridorCostV8:
     def __init__(self, alpha):
         self.alpha = alpha
@@ -322,7 +326,7 @@ class CorridorCostV8:
         nabla_2 = 2 * (zz - sigma)
 
         return li, nabla_1, nabla_2
-    
+
     def constraints(self, zz):
         g_1 = 1e-5 * zz[0] ** 4 + 2 - zz[1]
         g_2 = 1e-5 * zz[0] ** 4 + 2 + zz[1]
