@@ -1,7 +1,4 @@
-import matplotlib.pyplot as plt
 import numpy as np
-from matplotlib.lines import Line2D
-from scipy.optimize import minimize
 
 
 def phi(x):
@@ -94,17 +91,6 @@ def cost_gradient(theta, points):
 
 
 def centralized_gradient(dataset, initial_theta=None, alpha=1e-4, max_iters=1000, d=5):
-    # intermediate_results = []
-    # result = minimize(
-    #     fun=cost,
-    #     x0=np.zeros(5),
-    #     args=(dataset,),
-    #     method="BFGS",
-    #     jac=cost_gradient,
-    #     callback=lambda x: intermediate_results.append(x),
-    # )
-    # return result.x, intermediate_results
-
     costs = np.zeros(max_iters)
     gradient_magnitude = np.zeros(max_iters)
 

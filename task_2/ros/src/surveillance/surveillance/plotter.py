@@ -49,7 +49,7 @@ class Plotter(Node):
             return
 
         self._node_costs[node_id].append(cost)
-        self._node_grads[node_id].append(grad)
+        self._node_grads[node_id].append(np.array(grad))
         self._zz[node_id].append(np.array(zz))
         self._info(f"Received data from node {node_id}: zz = {zz}")
 
@@ -62,7 +62,7 @@ class Plotter(Node):
             return
 
         self._cost[kk] = sum(self._node_costs[node_id][kk] for node_id in range(self.nodes))
-        self._grad[kk] = sum(self._node_grads[node_id][kk] for node_id in range(self.nodes))
+        self._grad[kk] = np.linalg.norm(sum(self._node_grads[node_id][kk] for node_id in range(self.nodes)))
 
         self._debug(f"Iteration: #{kk}, Cost: {self._cost[kk]:.2f}, Gradient Magnitude: {self._grad[kk]:.2f}")
 

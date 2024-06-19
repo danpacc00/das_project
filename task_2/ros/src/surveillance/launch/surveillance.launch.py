@@ -1,13 +1,9 @@
+# import sys
+# sys.path.insert(0, "/home/danielepc/.asdf/installs/python/3.10.13/lib/python3.10/site-packages")
 import networkx as nx
 import numpy as np
 from launch import LaunchDescription
 from launch_ros.actions import Node
-
-# import sys
-
-# sys.path.insert(0, "/home/danielepc/.asdf/installs/python/3.10.13/lib/python3.10/site-packages")
-
-import networkx as nx
 
 N = 4  # Number of nodes (they represent the agents in this example)
 G = nx.path_graph(N)  # Create a graph
@@ -49,11 +45,10 @@ def generate_launch_description():
                 "Adj": [int(adj) for adj in Adj.flatten()],
                 "targets": [float(target) for target in targets.flatten()],
                 "timer_period": timer_period,
-                "max_iters": 150,
             },
         ],
         output="screen",
-        # prefix='xterm -title "Plotter" -hold -e',
+        prefix='xterm -title "Plotter" -hold -e',
     )
 
     nodes.append(plotter_node)
@@ -73,11 +68,11 @@ def generate_launch_description():
                     "initial_pose": list(initial_pose[i]),
                     "target": list(targets[i]),
                     "timer_period": timer_period,
+                    "cost_type": "surveillance",
                 },
             ],
-            # output="screen",
-            # prefix=f'gnome-terminal -- bash -c "echo -ne \'\\033]0;Agent {i}\\007\'; $0; read -p \'Press any key to close this terminal...\'"'
-            # prefix=f'xterm -title "Agent {i}" -hold -e',
+            output="screen",
+            prefix=f'xterm -title "Agent {i}" -hold -e',
         )
 
         nodes.append(node)

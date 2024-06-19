@@ -45,7 +45,7 @@ class GradientTracking:
                     zz[kk + 1, ii, :] += AA[ii, jj] * zz[kk, jj, :]
                     ss[kk + 1, ii, :] += AA[ii, jj] * ss[kk, jj, :]
 
-                zz[kk + 1, ii, :] -= self.alpha / (1 + kk // 10) * ss[kk, ii, :]
+                zz[kk + 1, ii, :] -= self.alpha * ss[kk, ii, :]
 
                 _, grad_ell_ii_new = self.cost_fn(ii, zz[kk + 1, ii, :])
 

@@ -7,11 +7,12 @@ from geometry_msgs.msg import Pose
 from message.msg import NodeData, PlotterData
 from rclpy.node import Node
 
-from surveillance.costs_fn import SurveillanceCost
+from surveillance.costs_fn import CorridorCostV8, SurveillanceCost
 from surveillance.phi import Identity
 
 DEFAULT_TIMER_PERIOD = 2  # seconds
 DEFAULT_ALPHA = 1e-2  # stepsize
+DEFAULT_COST_TYPE = "corridor"
 
 
 class Warden(Node):
@@ -27,6 +28,7 @@ class Warden(Node):
         self.initial_pose = np.array(self.get_parameter("initial_pose").value)
         self.timer_period = self.get_parameter("timer_period").value or DEFAULT_TIMER_PERIOD
         self.alpha = self.get_parameter("alpha").value or DEFAULT_ALPHA
+        self.cost_type = self.get_parameter("cost_type").value or DEFAULT_COST_TYPE
 
         self.pose = Pose()
         self.pose.position.x = self.initial_pose[0]
@@ -53,14 +55,18 @@ class Warden(Node):
         self._simtime = 0
         self._data = []
         self._phi_fn = Identity()
-        self._cost_fn = SurveillanceCost(tradeoff=1.0)
+        if self.cost_type == "surveillance":
+            self._cost_fn = SurveillanceCost(tradeoff=1.0)
+        else:
+            self._cost_fn = CorridorCostV8(alpha=0.8)
+
         self._zz = [self.initial_pose]
         self._ss = {jj: [np.zeros(2)] for jj in self.neighbors}
         self._vv = {jj: [np.zeros(2)] for jj in self.neighbors}
 
         self._ss[self.id] = [self._phi_fn(self._zz[self._simtime])[0]]
         self._vv[self.id] = [
-            self._cost_fn(self.target_position, self._zz[self._simtime], self._ss[self.id][self._simtime])[2]
+            self._cost_fn(self.target_position, self._zz[self._simtime], self._ss[self.id][self._simtime], 0)[2]
         ]
 
     def _neighbor_callback(self, msg):
@@ -90,7 +96,7 @@ class Warden(Node):
             data.warden_id = self.id
             data.zz = [float(self._zz[self._simtime][0]), float(self._zz[self._simtime][1])]
             data.cost = 0.0
-            data.grad = 0.0
+            data.grad = [0.0, 0.0]
             self._plotter_pub.publish(data)
             self._info(f"Published data for plotter: zz = {self._zz[self._simtime]}")
 
@@ -112,7 +118,7 @@ class Warden(Node):
         data.warden_id = self.id
         data.zz = [float(self._zz[self._simtime][0]), float(self._zz[self._simtime][1])]
         data.cost = cost
-        data.grad = grad
+        data.grad = [float(grad[0]), float(grad[1])]
         self._plotter_pub.publish(data)
         self._debug("Published data for plotter")
 
@@ -123,28 +129,27 @@ class Warden(Node):
         kk = self._simtime
         ii = self.id
 
-        li_nabla_1 = self._cost_fn(self.target_position, self._zz[kk - 1], self._ss[ii][kk - 1])[1]
+        self._ss[ii].append(self.weights[ii] * self._ss[ii][kk - 1])
+        self._vv[ii].append(self.weights[ii] * self._vv[ii][kk - 1])
+        for jj in self.neighbors:
+            weight = self.weights[jj]
+            self._ss[ii][kk][:] += weight * self._ss[jj][kk - 1][:]
+            self._vv[ii][kk][:] += weight * self._vv[jj][kk - 1][:]
+
+        li_nabla_1 = self._cost_fn(self.target_position, self._zz[kk - 1], self._ss[ii][kk - 1], kk)[1]
         _, phi_grad = self._phi_fn(self._zz[kk - 1])
 
         self._zz.append(self._zz[kk - 1] - self.alpha * (li_nabla_1 + self._vv[ii][kk - 1] * phi_grad))
 
         self._ss[ii].append(self._phi_fn(self._zz[kk])[0] - self._phi_fn(self._zz[kk - 1])[0])
         self._vv[ii].append(
-            self._cost_fn(self.target_position, self._zz[kk], self._ss[ii][kk])[2]
-            - self._cost_fn(self.target_position, self._zz[kk - 1], self._ss[ii][kk - 1])[2]
+            self._cost_fn(self.target_position, self._zz[kk], self._ss[ii][kk], kk)[2]
+            - self._cost_fn(self.target_position, self._zz[kk - 1], self._ss[ii][kk - 1], kk)[2]
         )
 
-        self._ss[ii][kk] += self.weights[ii] * self._ss[ii][kk - 1]
-        self._vv[ii][kk] += self.weights[ii] * self._vv[ii][kk - 1]
-
-        for jj in self.neighbors:
-            weight = self.weights[jj]
-            self._ss[ii][kk][:] += weight * self._ss[jj][kk - 1][:]
-            self._vv[ii][kk][:] += weight * self._vv[jj][kk - 1][:]
-
-        cost = self._cost_fn(self.target_position, self._zz[kk], self._ss[ii][kk])[0]
-        total_grad = self._cost_fn(self.target_position, self._zz[kk], self._ss[ii][kk])[1:]
-        return cost, np.linalg.norm(total_grad)
+        cost, li_nabla_1, li_nabla_2 = self._cost_fn(self.target_position, self._zz[kk], self._ss[ii][kk], kk)
+        total_grad = li_nabla_1 + li_nabla_2
+        return cost, total_grad
 
     def _debug(self, msg):
         self.get_logger().debug(f"[{self.id}] {msg}")

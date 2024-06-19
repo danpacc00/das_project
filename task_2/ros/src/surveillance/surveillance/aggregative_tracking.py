@@ -80,7 +80,7 @@ class AggregativeTracking:
             self.gradient_magnitude[kk] += np.linalg.norm(grad)
 
             print(f"Iteration: #{kk}, Cost: {self.cost[kk]:.2f}, Gradient Magnitude: {self.gradient_magnitude[kk]:.2f}")
-            if self.gradient_magnitude[kk] < 1e-2:
+            if self.gradient_magnitude[kk] < 1e-6:
                 print(f"Converged at iteration {kk}")
                 break
 

@@ -1,16 +1,15 @@
 import argparse
 import signal
 
-signal.signal(signal.SIGINT, signal.SIG_DFL)
-
 import matplotlib.pyplot as plt
 import networkx as nx
 import numpy as np
 import plot
 from costs_fn import LogisticRegressionCost, QuadraticCost
-from dataset import centralized_gradient, classification_error, cost, create_labeled_dataset
+from dataset import centralized_gradient, create_labeled_dataset
 from gradient_tracking import GradientTracking
 
+signal.signal(signal.SIGINT, signal.SIG_DFL)
 np.random.seed(0)
 
 
@@ -18,9 +17,8 @@ def main():
     # Task 1.1
     argparser = argparse.ArgumentParser()
     argparser.add_argument("-n", "--nodes", type=int, default=10)
-    argparser.add_argument("-z", "--dimension", type=int, default=2)
+    argparser.add_argument("-d", "--dimension", type=int, default=2)
     argparser.add_argument("-i", "--iters", type=int, default=1000)
-    argparser.add_argument("-d", "--dataset", type=str, choices=["line", "ellipse"], default="ellipse")
     argparser.add_argument("-p", "--max-points", type=int, default=1000)
     argparser.add_argument("--no-plots", action="store_true", default=False)
     argparser.add_argument("--skip", type=str, default="")
@@ -48,6 +46,8 @@ def main():
                 graph, d=args.dimension, zz0=np.random.uniform(-5, 5, size=(args.nodes, args.dimension))
             )
 
+            print("Optimal value: ", cost_fn.optimal())
+
             if not args.no_plots:
                 fig, ax = plt.subplots(2, 2, figsize=(10, 10))
                 fig.suptitle(
@@ -62,7 +62,7 @@ def main():
                 ax[0, 1].grid()
                 ax[0, 1].set_title("x1")
 
-                ax[1, 0].plot(np.arange(zz.shape[0] - 1), cost[:-1])
+                ax[1, 0].semilogy(np.arange(zz.shape[0] - 1), cost[:-1])
                 ax[1, 0].grid()
                 ax[1, 0].set_title("Cost")
 
@@ -73,9 +73,9 @@ def main():
                 plt.show()
 
     params_list = [
+        np.array((9.0, 2.0, 1.0, 5.0, 0.5)),
         np.array((9.0, 2.0, 1.0, -5.0, 0.5)),
         np.random.uniform(1, 10, size=5).round(),
-        np.array((9.0, 2.0, 1.0, 5.0, 0.5)),
     ]
     dimension = params_list[0].shape[0]
     datasets = []
@@ -102,7 +102,7 @@ def main():
         # Task 1.2
         if 2 not in skipped:
             theta_hat, costs, gradient_magnitude = centralized_gradient(
-                dataset, initial_theta=initial_theta.copy(), max_iters=args.iters, alpha=1e-4, d=dimension
+                dataset, initial_theta=initial_theta.copy(), max_iters=args.iters, alpha=1e-5, d=dimension
             )
             plot.results(dataset, theta_hat, real_theta, costs, gradient_magnitude)
 
@@ -126,7 +126,7 @@ def main():
                         plt.subplot2grid((2, 6), (1, 3), colspan=2),
                     ]
                     for i, label in enumerate(["a", "b", "c", "d", "bias"]):
-                        axes[i].plot(np.arange(zz.shape[0]), zz[:, :, i])
+                        axes[i].semilogx(np.arange(zz.shape[0]), zz[:, :, i])
                         axes[i].grid()
                         axes[i].set_xlabel("Iterations")
                         axes[i].set_ylabel(label)

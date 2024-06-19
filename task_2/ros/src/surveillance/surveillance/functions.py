@@ -47,6 +47,7 @@ def error_plot(XX, NN, n_x, Adj, distances, horizon):
 def animation(XX, horizon, Adj, targets):
     NN = XX.shape[1]
 
+    plt.figure("Animation")
     for tt in range(len(horizon)):
         # plot trajectories
         plt.plot(
@@ -113,11 +114,7 @@ def animation(XX, horizon, Adj, targets):
         plt.ylabel("second component")
         plt.title(f"Formation Control - Simulation time = {horizon[tt]:.2f} s")
         plt.show(block=False)
-        plt.pause(0.1)
-
-        if tt == len(horizon) - 1:
-            plt.pause(10)
-
+        plt.pause(0.001)
         plt.clf()
 
 

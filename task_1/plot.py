@@ -1,13 +1,13 @@
 import matplotlib.pyplot as plt
 import numpy as np
-from dataset import classification_error, cost, ellipse_equation
+from dataset import classification_error, ellipse_equation
 from matplotlib.lines import Line2D
 
 
-def classification_results(dataset, real_theta, costs, gradient_norms):
-    _, axs = plt.subplots(1, 3)
+def classification_results(costs, gradient_norms):
+    _, axs = plt.subplots(1, 2)
 
-    axs[0].plot(costs, color="blue")
+    axs[0].semilogy(costs, color="blue")
     axs[0].set_xlabel("Iteration")
     axs[0].set_ylabel("Cost")
     axs[0].set_title("Evolution of the Cost Function")
@@ -18,14 +18,6 @@ def classification_results(dataset, real_theta, costs, gradient_norms):
     axs[1].set_ylabel("Norm of the Gradient")
     axs[1].set_title("Evolution of the Norm of the Gradient")
     axs[1].grid(True)
-
-    opt_cost = cost(real_theta, dataset)
-    print(f"Optimal cost: {opt_cost}")
-    axs[2].semilogy(np.abs(costs[:-1] - opt_cost))
-    axs[2].set_title(f"Difference between optimal cost ({opt_cost:.2f}) and iteration cost")
-    axs[2].set_xlabel("Iterations")
-    axs[2].set_ylabel("optimal - cost[kk]")
-    axs[2].grid(True)
 
     plt.show()
 
@@ -88,7 +80,7 @@ def results(data, theta_hat, real_theta, costs, gradient_magnitude, no_plots=Fal
     print(f"Classification error: {classification_error(data, theta_hat)}")
 
     if not no_plots:
-        classification_results(data, real_theta, costs, gradient_magnitude)
+        classification_results(costs, gradient_magnitude)
 
         real_classifier = _get_classifier(real_theta, "real")
         dataset("Centralized gradient classification", data, real_classifier, estimated_classifier)
