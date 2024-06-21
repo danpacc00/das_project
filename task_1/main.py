@@ -18,7 +18,7 @@ def main():
     argparser = argparse.ArgumentParser()
     argparser.add_argument("-n", "--nodes", type=int, default=10)
     argparser.add_argument("-d", "--dimension", type=int, default=2)
-    argparser.add_argument("-i", "--iters", type=int, default=1000)
+    argparser.add_argument("-i", "--iters", type=int, default=2000)
     argparser.add_argument("-p", "--max-points", type=int, default=1000)
     argparser.add_argument("--no-plots", action="store_true", default=False)
     argparser.add_argument("--skip", type=str, default="")
@@ -30,45 +30,48 @@ def main():
     graphs = [
         {"name": "path", "fn": nx.path_graph},
         {"name": "cycle", "fn": nx.cycle_graph},
-        {"name": "complete", "fn": nx.complete_graph},
         {"name": "star", "fn": nx.star_graph},
+        {"name": "complete", "fn": nx.complete_graph},
     ]
 
     # Task 1.1
     if 1 not in skipped:
+        zz0 = np.random.uniform(-5, 5, size=(args.nodes, args.dimension))
         for graph_opt in graphs:
             graph = graph_opt["fn"](args.nodes - 1 if graph_opt["name"] == "star" else args.nodes)
 
             cost_fn = QuadraticCost(args.nodes, d=args.dimension)
             gt = GradientTracking(cost_fn, max_iters=args.iters, alpha=1e-2)
 
-            zz, cost, gradient_magnitude = gt.run(
-                graph, d=args.dimension, zz0=np.random.uniform(-5, 5, size=(args.nodes, args.dimension))
-            )
+            zz, cost, gradient_magnitude = gt.run(graph, d=args.dimension, zz0=zz0.copy())
 
             print("Optimal value: ", cost_fn.optimal())
 
             if not args.no_plots:
-                fig, ax = plt.subplots(2, 2, figsize=(10, 10))
+                fig, ax = plt.subplots(1, 2, figsize=(10, 10))
                 fig.suptitle(
-                    f"Gradient tracking with Quadratic Cost Function (Graph = {graph_opt['name']}, N = {args.nodes}, d = {args.dimension}, Iterations = {args.iters})"
+                    f"Gradient tracking with Quadratic Cost Function (Graph = {graph_opt['name']}, N = {args.nodes}, d = {args.dimension}, Iterations = {len(cost)})"
                 )
 
-                ax[0, 0].plot(np.arange(zz.shape[0]), zz[:, :, 0])
-                ax[0, 0].grid()
-                ax[0, 0].set_title("x0")
+                ax[0].semilogx(np.arange(zz.shape[0]), zz[:, :, 0])
+                ax[0].grid()
+                ax[0].set_title("x0")
+                ax[1].semilogx(np.arange(zz.shape[0]), zz[:, :, 1])
+                ax[1].grid()
+                ax[1].set_title("x1")
 
-                ax[0, 1].plot(np.arange(zz.shape[0]), zz[:, :, 1])
-                ax[0, 1].grid()
-                ax[0, 1].set_title("x1")
+                plt.show()
 
-                ax[1, 0].semilogy(np.arange(zz.shape[0] - 1), cost[:-1])
-                ax[1, 0].grid()
-                ax[1, 0].set_title("Cost")
-
-                ax[1, 1].semilogy(np.arange(zz.shape[0] - 1), gradient_magnitude[1:])
-                ax[1, 1].grid()
-                ax[1, 1].set_title("Gradient magnitude")
+                fig, ax = plt.subplots(1, 2, figsize=(10, 10))
+                fig.suptitle(
+                    f"Gradient tracking with Quadratic Cost Function (Graph = {graph_opt['name']}, N = {args.nodes}, d = {args.dimension}, Iterations = {len(cost)})"
+                )
+                ax[0].semilogy(np.arange(zz.shape[0] - 1), cost[:-1])
+                ax[0].grid()
+                ax[0].set_title("Cost")
+                ax[1].semilogy(np.arange(zz.shape[0] - 1), gradient_magnitude[1:])
+                ax[1].grid()
+                ax[1].set_title("Gradient magnitude")
 
                 plt.show()
 
@@ -112,33 +115,57 @@ def main():
             cost_fn = LogisticRegressionCost(datasets)
             gt = GradientTracking(cost_fn, max_iters=args.iters, alpha=1e-4)
 
-            for graph_opt in graphs:
-                graph = graph_opt["fn"](args.nodes - 1 if graph_opt["name"] == "star" else args.nodes)
+            graph = nx.path_graph(args.nodes)
+            zz, costs, gradient_magnitude = gt.run(graph, d=dimension, zz0=initial_theta)
 
-                zz, costs, gradient_magnitude = gt.run(graph, d=dimension, zz0=initial_theta)
+            if not args.no_plots:
+                # axes = [
+                #     plt.subplot2grid(shape=(2, 6), loc=(0, 0), colspan=2),
+                #     plt.subplot2grid((2, 6), (0, 2), colspan=2),
+                #     plt.subplot2grid((2, 6), (0, 4), colspan=2),
+                #     plt.subplot2grid((2, 6), (1, 1), colspan=2),
+                #     plt.subplot2grid((2, 6), (1, 3), colspan=2),
+                # ]
+                # for i, label in enumerate(["a", "b", "c", "d", "bias"]):
+                #     axes[i].semilogx(np.arange(zz.shape[0]), zz[:, :, i])
+                #     axes[i].grid()
+                #     axes[i].set_xlabel("Iterations")
+                #     axes[i].set_ylabel(label)
 
-                if not args.no_plots:
-                    axes = [
-                        plt.subplot2grid(shape=(2, 6), loc=(0, 0), colspan=2),
-                        plt.subplot2grid((2, 6), (0, 2), colspan=2),
-                        plt.subplot2grid((2, 6), (0, 4), colspan=2),
-                        plt.subplot2grid((2, 6), (1, 1), colspan=2),
-                        plt.subplot2grid((2, 6), (1, 3), colspan=2),
-                    ]
-                    for i, label in enumerate(["a", "b", "c", "d", "bias"]):
-                        axes[i].semilogx(np.arange(zz.shape[0]), zz[:, :, i])
-                        axes[i].grid()
-                        axes[i].set_xlabel("Iterations")
-                        axes[i].set_ylabel(label)
+                fig, ax = plt.subplots(1, 2, figsize=(20, 10))
+                ax[0].semilogx(np.arange(zz.shape[0]), zz[:, :, 0])
+                ax[0].grid()
+                ax[0].set_title("a")
+                ax[1].semilogx(np.arange(zz.shape[0]), zz[:, :, 1])
+                ax[1].grid()
+                ax[1].set_title("b")
+                plt.suptitle(
+                    f"Gradient tracking with Logistic Regression Cost Function (graph = path, nodes = {args.nodes}, d = {dimension}, iters = {args.iters})"
+                )
+                plt.show()
 
-                    plt.subplots_adjust(hspace=0.25, wspace=1.0)
-                    plt.suptitle(
-                        f"Gradient tracking with Logistic Regression Cost Function (graph = {graph_opt['name']}, nodes = {args.nodes}, d = {dimension}, iters = {args.iters})"
-                    )
-                    plt.show()
+                fig, ax = plt.subplots(1, 2, figsize=(20, 10))
+                ax[0].semilogx(np.arange(zz.shape[0]), zz[:, :, 2])
+                ax[0].grid()
+                ax[0].set_title("c")
+                ax[1].semilogx(np.arange(zz.shape[0]), zz[:, :, 3])
+                ax[1].grid()
+                ax[1].set_title("d")
+                plt.suptitle(
+                    f"Gradient tracking with Logistic Regression Cost Function (graph = path, nodes = {args.nodes}, d = {dimension}, iters = {args.iters})"
+                )
+                plt.show()
 
-                    theta_hat = zz[-1, 0, :]
-                    plot.results(dataset, theta_hat, real_theta, costs, gradient_magnitude, no_plots=args.no_plots)
+                plt.semilogx(np.arange(zz.shape[0]), zz[:, :, 4])
+                plt.ylabel("bias")
+                plt.grid()
+                plt.title(
+                    f"Gradient tracking with Logistic Regression Cost Function (graph = path, nodes = {args.nodes}, d = {dimension}, iters = {args.iters})"
+                )
+                plt.show()
+
+                theta_hat = zz[-1, 0, :]
+                plot.results(dataset, theta_hat, real_theta, costs, gradient_magnitude, no_plots=args.no_plots)
 
 
 if __name__ == "__main__":

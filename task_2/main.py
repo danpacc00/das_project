@@ -66,26 +66,32 @@ def main():
                 algo = AggregativeTracking(cost, phi.Identity(), max_iters=args.iters, alpha=1e-2)
 
                 graph = nx.path_graph(args.nodes)
-                zz, cost, gradient_magnitude, kk = algo.run(graph, zz_init, targets, d=2)
+                zz, ss, cost, gradient_magnitude, kk = algo.run(graph, zz_init, targets, d=2)
 
                 if not args.no_plots:
-                    _, ax = plt.subplots(3, 1, figsize=(10, 10))
-                    ax[0].plot(np.arange(zz.shape[0]), zz[:, :, 0])
+                    _, ax = plt.subplots(1, 2, figsize=(10, 10))
+                    ax[0].semilogx(np.arange(ss.shape[0]), ss[:, :, 0])
                     ax[0].grid()
-                    ax[0].set_title("Aggregative tracking")
+                    ax[0].set_title("$s_x$")
 
-                    ax[1].plot(np.arange(zz.shape[0] - 1), cost[:-1])
+                    ax[1].semilogx(np.arange(ss.shape[0]), ss[:, :, 1])
                     ax[1].grid()
-                    ax[1].set_title("Cost")
+                    ax[1].set_title("$s_y$")
+                    plt.suptitle(f"Barycenter estimation with tradeoff = {tradeoff}")
+                    plt.show()
 
-                    ax[2].semilogy(np.arange(zz.shape[0] - 1), gradient_magnitude[1:])
-                    ax[2].grid()
-                    ax[2].set_title("Gradient magnitude")
+                    _, ax = plt.subplots(1, 2, figsize=(10, 10))
+                    ax[0].semilogy(np.arange(zz.shape[0] - 1), cost[:-1])
+                    ax[0].grid()
+                    ax[0].set_title("Cost")
 
+                    ax[1].semilogy(np.arange(zz.shape[0] - 1), gradient_magnitude[1:])
+                    ax[1].grid()
+                    ax[1].set_title("Gradient magnitude")
+                    plt.suptitle(f"Aggregative tracking with tradeoff = {tradeoff}")
                     plt.show()
 
                     # plot trajectories
-                    print(f"Tradeoff {tradeoff}")
                     for jj in range(args.nodes):
                         plt.plot(
                             zz[:, jj, 0],
@@ -96,12 +102,34 @@ def main():
                             label=f"Trajectory {jj}",
                         )
 
-                        plt.scatter(zz[-1, jj, 0], zz[-1, jj, 1], color="orange", label=f"Final position {jj}", marker="x")
+                        plt.scatter(
+                            zz[-1, jj, 0], zz[-1, jj, 1], color="orange", label=f"Final position {jj}", marker="x"
+                        )
+
+                        plt.annotate(
+                            f"$z_{jj}^0$",  # Annotation text
+                            xy=(zz[0, jj, 0], zz[0, jj, 1]),  # Point to annotate
+                            xytext=(zz[0, jj, 0] + 0.2, zz[0, jj, 1] + 0.2),  # Text position (offset)
+                            fontsize=12,
+                            bbox=dict(
+                                boxstyle="round,pad=0.2", facecolor="white", edgecolor="red"
+                            ),  # Bounding box properties
+                        )
 
                         plt.plot(targets[:, 0], targets[:, 1], "bx")
                         plt.plot(zz_init[:, 0], zz_init[:, 1], "ro")
 
-                        plt.title(f"Tradeoff = {tradeoff}")
+                        plt.annotate(
+                            f"Target {jj}",  # Annotation text
+                            xy=(targets[jj, 0], targets[jj, 1]),  # Point to annotate
+                            xytext=(targets[jj, 0] - 0.4, targets[jj, 1] + 0.4),  # Text position (offset)
+                            fontsize=12,
+                            bbox=dict(
+                                boxstyle="round,pad=0.2", facecolor="white", edgecolor="blue"
+                            ),  # Bounding box properties
+                        )
+
+                        plt.title(f"Agents trajectories (tradeoff = {tradeoff})")
 
                         print(f"Final distance from target node {jj}: ", np.linalg.norm(zz[-1, jj] - targets))
 
@@ -109,7 +137,6 @@ def main():
 
                 if not args.skip_animations:
                     animation(zz, np.linspace(0, kk, kk), nx.adjacency_matrix(graph).toarray(), targets)
-
 
     if 3 not in skipped:
         top_wall = {"x_start": -15, "x_end": 15, "y": 10, "res": 1000}
@@ -178,6 +205,7 @@ def main():
         ).T
 
         for i in range(len(targets_list)):
+            targets = targets_list[i]
             x = np.linspace(-60, 60, 100)
             g_1 = 1e-5 * x**4 + 2
             g_2 = -(1e-5 * x**4 + 2)
@@ -185,40 +213,66 @@ def main():
             algo = AggregativeTracking(cost, phi.Identity(), max_iters=args.iters, alpha=1e-3, gamma=1e-5)
 
             graph = nx.path_graph(args.nodes)
-            zz, cost, gradient_magnitude, kk = algo.run(graph, initial_poses_list[i], targets_list[i], d=2)
+            zz, ss, cost, gradient_magnitude, kk = algo.run(graph, initial_poses_list[i], targets, d=2)
 
             if not args.no_plots:
-                _, ax = plt.subplots(3, 1, figsize=(10, 10))
-                ax[0].plot(np.arange(zz.shape[0]), zz[:, :, 0])
+                _, ax = plt.subplots(1, 2, figsize=(10, 10))
+                ax[0].semilogx(np.arange(ss.shape[0]), ss[:, :, 0])
                 ax[0].grid()
-                ax[0].set_title("Aggregative tracking")
+                ax[0].set_title("$s_x$")
 
-                ax[1].plot(np.arange(zz.shape[0] - 1), cost[:-1])
+                ax[1].semilogx(np.arange(ss.shape[0]), ss[:, :, 1])
                 ax[1].grid()
-                ax[1].set_title("Cost")
+                ax[1].set_title("$s_y$")
+                plt.suptitle("Barycenter estimation (obstacles case)")
+                plt.show()
 
-                ax[2].semilogy(np.arange(zz.shape[0] - 1), gradient_magnitude[1:])
-                ax[2].grid()
-                ax[2].set_title("Gradient magnitude")
+                _, ax = plt.subplots(1, 2, figsize=(10, 10))
+                ax[0].semilogy(np.arange(zz.shape[0] - 1), cost[:-1])
+                ax[0].grid()
+                ax[0].set_title("Cost")
 
+                ax[1].semilogy(np.arange(zz.shape[0] - 1), gradient_magnitude[1:])
+                ax[1].grid()
+                ax[1].set_title("Gradient magnitude")
+                plt.suptitle("Aggregative tracking (obstacles case)")
                 plt.show()
 
                 # plot trajectories
-                for j in range(args.nodes):
+                for jj in range(args.nodes):
                     plt.plot(
-                        zz[:, j, 0],
-                        zz[:, j, 1],
+                        zz[:, jj, 0],
+                        zz[:, jj, 1],
                         linewidth=1,
                         color="black",
                         linestyle="dashed",
-                        label=f"Trajectory {j}",
+                        label=f"Trajectory {jj}",
                     )
 
-                    plt.scatter(zz[-1, j, 0], zz[-1, j, 1], color="orange", label=f"Final position {j}", marker="x")
+                    plt.scatter(zz[-1, jj, 0], zz[-1, jj, 1], color="orange", label=f"Final position {jj}", marker="x")
 
-                    plt.plot(targets_list[i][:, 0], targets_list[i][:, 1], "bx")
+                    plt.annotate(
+                        f"$z_{jj}^0$",  # Annotation text
+                        xy=(zz[0, jj, 0], zz[0, jj, 1]),  # Point to annotate
+                        xytext=(zz[0, jj, 0] + 0.2, zz[0, jj, 1] + 0.2),  # Text position (offset)
+                        fontsize=12,
+                        bbox=dict(boxstyle="round,pad=0.2", facecolor="white", edgecolor="red"),
+                    )
+
+                    plt.plot(targets[:, 0], targets[:, 1], "bx")
                     plt.plot(initial_poses_list[i][:, 0], initial_poses_list[i][:, 1], "ro")
-                    # plt.plot(obstacles[:, 0], obstacles[:, 1], "kx")
+
+                    plt.annotate(
+                        f"Target {jj}",  # Annotation text
+                        xy=(targets[jj, 0], targets[jj, 1]),  # Point to annotate
+                        xytext=(targets[jj, 0] - 0.4, targets[jj, 1] + 0.4),  # Text position (offset)
+                        fontsize=12,
+                        bbox=dict(
+                            boxstyle="round,pad=0.2", facecolor="white", edgecolor="blue"
+                        ),  # Bounding box properties
+                    )
+
+                    plt.title("Agents trajectories")
 
                     plt.plot(x, g_1, "g-")
                     plt.plot(x, g_2, "g-")

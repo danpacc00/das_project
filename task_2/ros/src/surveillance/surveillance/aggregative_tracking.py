@@ -84,4 +84,4 @@ class AggregativeTracking:
                 print(f"Converged at iteration {kk}")
                 break
 
-        return zz[:kk, :, :], self.cost[:kk], self.gradient_magnitude[:kk], kk
+        return zz[:kk, :, :], ss[:kk, :, :], self.cost[:kk], self.gradient_magnitude[:kk], kk
