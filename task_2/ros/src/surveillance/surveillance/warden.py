@@ -3,7 +3,6 @@ import time
 
 import numpy as np
 import rclpy
-from geometry_msgs.msg import Pose
 from message.msg import NodeData, PlotterData
 from rclpy.node import Node
 
@@ -28,18 +27,12 @@ class Warden(Node):
         self.initial_pose = np.array(self.get_parameter("initial_pose").value)
         self.timer_period = self.get_parameter("timer_period").value or DEFAULT_TIMER_PERIOD
         self.alpha = self.get_parameter("alpha").value or DEFAULT_ALPHA
+        self.initial_alpha = self.alpha
         self.cost_type = self.get_parameter("cost_type").value or DEFAULT_COST_TYPE
-
-        self.pose = Pose()
-        self.pose.position.x = self.initial_pose[0]
-        self.pose.position.y = self.initial_pose[1]
-
-        self.target = Pose()
-        self.target.position.x = self.target_position[0]
-        self.target.position.y = self.target_position[1]
+        self.max_iters = self.get_parameter("max_iters").value
 
         self._debug(
-            f"Starting warden {self.id} at position x = {self.pose.position.x}, y = {self.pose.position.y} with target x = {self.target.position.x}, y = {self.target.position.y}"
+            f"Starting warden {self.id} at position x = {self.initial_pose[0]}, y = {self.initial_pose[1]} with target x = {self.target_position[0]}, y = {self.target_position[1]}"
         )
 
         self._subs = {}
@@ -61,13 +54,11 @@ class Warden(Node):
             self._cost_fn = CorridorCostV8(alpha=0.8)
 
         self._zz = [self.initial_pose]
-        self._ss = {jj: [np.zeros(2)] for jj in self.neighbors}
-        self._vv = {jj: [np.zeros(2)] for jj in self.neighbors}
+        self._ss = {jj: [] for jj in self.neighbors}
+        self._vv = {jj: [] for jj in self.neighbors}
 
-        self._ss[self.id] = [self._phi_fn(self._zz[self._simtime])[0]]
-        self._vv[self.id] = [
-            self._cost_fn(self.target_position, self._zz[self._simtime], self._ss[self.id][self._simtime], 0)[2]
-        ]
+        self._ss[self.id] = [self._phi_fn(self._zz[0])[0]]
+        self._vv[self.id] = [self._cost_fn(self.target_position, self._zz[0], self._ss[self.id][0], 0)[2]]
 
     def _neighbor_callback(self, msg):
         neighbor_id = msg.warden_id
@@ -85,25 +76,26 @@ class Warden(Node):
         msg.time = self._simtime
 
         if self._simtime == 0:
-            msg.ss = [self._ss[self.id][self._simtime][0], self._ss[self.id][self._simtime][1]]
-            msg.vv = [self._vv[self.id][self._simtime][0], self._vv[self.id][self._simtime][1]]
-            self._publisher.publish(msg)
-            self._debug("Published initial data")
-
             time.sleep(1)
+
+            msg.ss = [self._ss[self.id][0][0], self._ss[self.id][0][1]]
+            msg.vv = [self._vv[self.id][0][0], self._vv[self.id][0][1]]
+            self._publisher.publish(msg)
+            self._debug(f"Published initial data: ss = {self._ss[self.id][0]}, vv = {self._vv[self.id][0]}")
 
             data = PlotterData()
             data.warden_id = self.id
-            data.zz = [float(self._zz[self._simtime][0]), float(self._zz[self._simtime][1])]
+            data.time = self._simtime
+            data.zz = [float(self._zz[0][0]), float(self._zz[0][1])]
             data.cost = 0.0
             data.grad = [0.0, 0.0]
             self._plotter_pub.publish(data)
-            self._info(f"Published data for plotter: zz = {self._zz[self._simtime]}")
+            self._debug(f"Published data for plotter: zz = {self._zz[0]}")
 
             self._simtime += 1
             return
 
-        all_received = all(len(self._ss[neighbor_id]) > self._simtime for neighbor_id in self.neighbors)
+        all_received = all(len(self._ss[neighbor_id]) >= self._simtime for neighbor_id in self.neighbors)
         if not all_received:
             self._debug("Waiting for all neighbors to respond...")
             return
@@ -116,11 +108,12 @@ class Warden(Node):
 
         data = PlotterData()
         data.warden_id = self.id
+        data.time = self._simtime
         data.zz = [float(self._zz[self._simtime][0]), float(self._zz[self._simtime][1])]
         data.cost = cost
         data.grad = [float(grad[0]), float(grad[1])]
         self._plotter_pub.publish(data)
-        self._debug("Published data for plotter")
+        self._debug(f"Published data for plotter (#{self._simtime})")
 
         self._simtime += 1
 
@@ -139,10 +132,19 @@ class Warden(Node):
         li_nabla_1 = self._cost_fn(self.target_position, self._zz[kk - 1], self._ss[ii][kk - 1], kk)[1]
         _, phi_grad = self._phi_fn(self._zz[kk - 1])
 
-        self._zz.append(self._zz[kk - 1] - self.alpha * (li_nabla_1 + self._vv[ii][kk - 1] * phi_grad))
+        if self.cost_type == "corridor":
+            constraints = self._cost_fn.constraints(self._zz[kk - 1])
+            if np.any(constraints**2 <= 1.0):
+                self.alpha = np.max([self.alpha * 1e-3, 5e-5])
+            else:
+                self.alpha = np.min([self.alpha * 1.1, self.initial_alpha])
 
-        self._ss[ii].append(self._phi_fn(self._zz[kk])[0] - self._phi_fn(self._zz[kk - 1])[0])
-        self._vv[ii].append(
+            self._zz.append(self._zz[kk - 1] - self.alpha * (li_nabla_1 + phi_grad * self._vv[ii][kk - 1]))
+        else:
+            self._zz.append(self._zz[kk - 1] - self.alpha * (li_nabla_1 + self._vv[ii][kk - 1] * phi_grad))
+
+        self._ss[ii][kk] += self._phi_fn(self._zz[kk])[0] - self._phi_fn(self._zz[kk - 1])[0]
+        self._vv[ii][kk] += (
             self._cost_fn(self.target_position, self._zz[kk], self._ss[ii][kk], kk)[2]
             - self._cost_fn(self.target_position, self._zz[kk - 1], self._ss[ii][kk - 1], kk)[2]
         )

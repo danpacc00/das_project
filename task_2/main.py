@@ -1,4 +1,5 @@
 import argparse
+import signal
 
 import matplotlib.pyplot as plt
 import networkx as nx
@@ -6,18 +7,12 @@ import numpy as np
 import ros.src.surveillance.surveillance.phi as phi
 from ros.src.surveillance.surveillance.aggregative_tracking import AggregativeTracking
 from ros.src.surveillance.surveillance.costs_fn import (
-    CorridorCost,
-    CorridorCostV2,
-    CorridorCostV3,
-    CorridorCostV4,
-    CorridorCostV5,
-    CorridorCostV6,
-    CorridorCostV7,
     CorridorCostV8,
     SurveillanceCost,
 )
 from ros.src.surveillance.surveillance.functions import animation, animation2
 
+signal.signal(signal.SIGINT, signal.SIG_DFL)
 np.random.seed(0)
 
 
