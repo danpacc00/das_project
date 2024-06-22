@@ -114,6 +114,7 @@ def centralized_gradient(dataset, initial_theta=None, alpha=1e-4, max_iters=1000
 
 def classification_error(dataset, theta):
     w, bias = theta[:4], theta[4]
+    misclassified = []
 
     error = 0
     for i in range(len(dataset)):
@@ -122,5 +123,6 @@ def classification_error(dataset, theta):
 
         if p * separating_function(w, bias, x) < 0:
             error += 1
+            misclassified.append(x)
 
-    return error / len(dataset)
+    return error / len(dataset), misclassified

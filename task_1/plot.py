@@ -22,10 +22,15 @@ def classification_results(costs, gradient_norms):
     plt.show()
 
 
-def dataset(title, dataset, *classifiers):
+def dataset(title, dataset, *classifiers, **kwargs):
     plt.figure()
     plt.scatter(dataset[dataset[:, 2] == 1, 0], dataset[dataset[:, 2] == 1, 1], color="blue")
     plt.scatter(dataset[dataset[:, 2] == -1, 0], dataset[dataset[:, 2] == -1, 1], color="red")
+
+    if "misclassified" in kwargs:
+        misclassified = kwargs["misclassified"]
+        for x in misclassified:
+            plt.scatter(x[0], x[1], color="magenta")
 
     x = np.linspace(np.min(dataset[:, 0]), np.max(dataset[:, 0]), 10000)
 
@@ -77,10 +82,18 @@ def results(data, theta_hat, real_theta, costs, gradient_magnitude, no_plots=Fal
     estimated_classifier = _get_classifier(theta_hat, "estimated")
     a, b, c, d, e = estimated_classifier["params"]
     print(f"Estimated parameters: a = {a:.2f}, b = {b:.2f}, c = {c:.2f}, d = {d:.2f}, e = {e:.2f}")
-    print(f"Classification error: {classification_error(data, theta_hat)}")
+
+    error, misclassified = classification_error(data, theta_hat)
+    print(f"Classification error: {error}")
 
     if not no_plots:
         classification_results(costs, gradient_magnitude)
 
         real_classifier = _get_classifier(real_theta, "real")
-        dataset("Centralized gradient classification", data, real_classifier, estimated_classifier)
+        dataset(
+            "Centralized gradient classification",
+            data,
+            real_classifier,
+            estimated_classifier,
+            misclassified=misclassified,
+        )
