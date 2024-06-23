@@ -90,7 +90,7 @@ def main():
 
         a, b, c, d, e = params
         real_theta = np.array((a, b, c, d, -(e**2)))
-        initial_theta = np.zeros(dimension)  # real_theta + real_theta * 0.7
+        initial_theta = real_theta + real_theta * 0.7
         real_classifier = {
             "params": params,
             "color": "green",
@@ -107,13 +107,15 @@ def main():
             theta_hat, costs, gradient_magnitude = centralized_gradient(
                 dataset, initial_theta=initial_theta.copy(), max_iters=args.iters, alpha=1e-5, d=dimension
             )
-            plot.results(dataset, theta_hat, real_theta, costs, gradient_magnitude)
+            plot.results(
+                dataset, theta_hat, real_theta, costs, gradient_magnitude, title="Centralised gradient classification"
+            )
 
         # Task 1.3
         if 3 not in skipped:
             datasets = np.array_split(dataset, args.nodes)
             cost_fn = LogisticRegressionCost(datasets)
-            gt = GradientTracking(cost_fn, max_iters=args.iters, alpha=1e-4)
+            gt = GradientTracking(cost_fn, max_iters=args.iters, alpha=1e-5)
 
             graph = nx.path_graph(args.nodes)
             zz, costs, gradient_magnitude = gt.run(graph, d=dimension, zz0=initial_theta)
@@ -165,7 +167,15 @@ def main():
                 plt.show()
 
                 theta_hat = zz[-1, 0, :]
-                plot.results(dataset, theta_hat, real_theta, costs, gradient_magnitude, no_plots=args.no_plots)
+                plot.results(
+                    dataset,
+                    theta_hat,
+                    real_theta,
+                    costs,
+                    gradient_magnitude,
+                    no_plots=args.no_plots,
+                    title="Distributed gradient classification",
+                )
 
 
 if __name__ == "__main__":

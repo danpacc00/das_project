@@ -78,7 +78,7 @@ def _get_classifier(theta, type):
         }
 
 
-def results(data, theta_hat, real_theta, costs, gradient_magnitude, no_plots=False):
+def results(data, theta_hat, real_theta, costs, gradient_magnitude, title, no_plots=False):
     estimated_classifier = _get_classifier(theta_hat, "estimated")
     a, b, c, d, e = estimated_classifier["params"]
     print(f"Estimated parameters: a = {a:.2f}, b = {b:.2f}, c = {c:.2f}, d = {d:.2f}, e = {e:.2f}")
@@ -91,7 +91,7 @@ def results(data, theta_hat, real_theta, costs, gradient_magnitude, no_plots=Fal
 
         real_classifier = _get_classifier(real_theta, "real")
         dataset(
-            "Centralized gradient classification",
+            title,
             data,
             real_classifier,
             estimated_classifier,

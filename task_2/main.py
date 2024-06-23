@@ -134,8 +134,8 @@ def main():
                     animation(zz, np.linspace(0, kk, kk), nx.adjacency_matrix(graph).toarray(), targets)
 
     if 3 not in skipped:
-        top_wall = {"x_start": -15, "x_end": 15, "y": 10, "res": 1000}
-        bottom_wall = {"x_start": -15, "x_end": 15, "y": -10, "res": 1000}
+        top_wall = {"x_start": -15, "x_end": 15, "y": 5, "res": 1000}
+        bottom_wall = {"x_start": -15, "x_end": 15, "y": -5, "res": 1000}
 
         middle = np.array((0, (top_wall["y"] - bottom_wall["y"]) / 2 + bottom_wall["y"]))
 
@@ -169,7 +169,7 @@ def main():
             np.column_stack((random_initial_poses[:, 0], random_initial_poses[:, 1] - y_offset)),
         ]
 
-        nobstacles = 150
+        nobstacles = 200
         obstacles = np.column_stack(
             (
                 np.array(
@@ -181,6 +181,18 @@ def main():
                 np.array(
                     (
                         np.tile(bottom_wall["x_start"], nobstacles),
+                        np.linspace(bottom_wall["y"], bottom_wall["y"] - y_offset * 4, nobstacles),
+                    )
+                ),
+                np.array(
+                    (
+                        np.tile(top_wall["x_end"], nobstacles),
+                        np.linspace(top_wall["y"], top_wall["y"] + y_offset * 4, nobstacles),
+                    )
+                ),
+                np.array(
+                    (
+                        np.tile(bottom_wall["x_end"], nobstacles),
                         np.linspace(bottom_wall["y"], bottom_wall["y"] - y_offset * 4, nobstacles),
                     )
                 ),
@@ -256,6 +268,9 @@ def main():
 
                     plt.plot(targets[:, 0], targets[:, 1], "bx")
                     plt.plot(initial_poses_list[i][:, 0], initial_poses_list[i][:, 1], "ro")
+
+                    # add obstacles
+                    plt.plot(obstacles[:, 0], obstacles[:, 1], "k.")
 
                     plt.annotate(
                         f"Target {jj}",  # Annotation text
