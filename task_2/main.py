@@ -136,8 +136,6 @@ def main():
         top_wall = {"x_start": -15, "x_end": 15, "y": 5, "res": 1000}
         bottom_wall = {"x_start": -15, "x_end": 15, "y": -5, "res": 1000}
 
-        middle = np.array((0, (top_wall["y"] - bottom_wall["y"]) / 2 + bottom_wall["y"]))
-
         x_offset = 50
         y_offset = 20
         random_pos_target = np.array(
@@ -168,55 +166,13 @@ def main():
             np.column_stack((random_initial_poses[:, 0], random_initial_poses[:, 1] - y_offset)),
         ]
 
-        nobstacles = 200
-        obstacles = np.column_stack(
-            (
-                np.array(
-                    (
-                        np.tile(top_wall["x_start"], nobstacles),
-                        np.linspace(top_wall["y"], top_wall["y"] + y_offset * 4, nobstacles),
-                    )
-                ),
-                np.array(
-                    (
-                        np.tile(bottom_wall["x_start"], nobstacles),
-                        np.linspace(bottom_wall["y"], bottom_wall["y"] - y_offset * 4, nobstacles),
-                    )
-                ),
-                np.array(
-                    (
-                        np.tile(top_wall["x_end"], nobstacles),
-                        np.linspace(top_wall["y"], top_wall["y"] + y_offset * 4, nobstacles),
-                    )
-                ),
-                np.array(
-                    (
-                        np.tile(bottom_wall["x_end"], nobstacles),
-                        np.linspace(bottom_wall["y"], bottom_wall["y"] - y_offset * 4, nobstacles),
-                    )
-                ),
-                np.array(
-                    (
-                        np.linspace(top_wall["x_start"], top_wall["x_end"], nobstacles),
-                        np.tile(top_wall["y"], nobstacles),
-                    )
-                ),
-                np.array(
-                    (
-                        np.linspace(bottom_wall["x_start"], bottom_wall["x_end"], nobstacles),
-                        np.tile(bottom_wall["y"], nobstacles),
-                    )
-                ),
-            )
-        ).T
-
         for i in range(len(targets_list)):
             targets = targets_list[i]
             x = np.linspace(-60, 60, 100)
             g_1 = 1e-5 * x**4 + 2
             g_2 = -(1e-5 * x**4 + 2)
             cost = CorridorCostV8(alpha=0.8)
-            algo = AggregativeTracking(cost, phi.Identity(), max_iters=args.iters, alpha=1e-3, gamma=1e-5)
+            algo = AggregativeTracking(cost, phi.Identity(), max_iters=args.iters, alpha=1e-4, gamma=1e-5)
 
             graph = nx.path_graph(args.nodes)
             zz, ss, cost, gradient_magnitude, kk = algo.run(graph, initial_poses_list[i], targets, d=2)
@@ -268,7 +224,36 @@ def main():
                     plt.plot(targets[:, 0], targets[:, 1], "bx")
                     plt.plot(initial_poses_list[i][:, 0], initial_poses_list[i][:, 1], "ro")
 
-                    plt.plot(obstacles[:, 0], obstacles[:, 1], "k.")
+                    plt.plot(
+                        np.linspace(top_wall["x_start"], top_wall["x_end"], top_wall["res"]),
+                        np.tile(top_wall["y"], top_wall["res"]),
+                        "k",
+                    )
+                    plt.plot(
+                        np.linspace(bottom_wall["x_start"], bottom_wall["x_end"], bottom_wall["res"]),
+                        np.tile(bottom_wall["y"], bottom_wall["res"]),
+                        "k",
+                    )
+                    plt.plot(
+                        np.tile(top_wall["x_start"], top_wall["res"]),
+                        np.linspace(top_wall["y"], top_wall["y"] + y_offset * 4, top_wall["res"]),
+                        "k",
+                    )
+                    plt.plot(
+                        np.tile(bottom_wall["x_start"], bottom_wall["res"]),
+                        np.linspace(bottom_wall["y"], bottom_wall["y"] - y_offset * 4, bottom_wall["res"]),
+                        "k",
+                    )
+                    plt.plot(
+                        np.tile(top_wall["x_end"], top_wall["res"]),
+                        np.linspace(top_wall["y"], top_wall["y"] + y_offset * 4, top_wall["res"]),
+                        "k",
+                    )
+                    plt.plot(
+                        np.tile(bottom_wall["x_end"], bottom_wall["res"]),
+                        np.linspace(bottom_wall["y"], bottom_wall["y"] - y_offset * 4, bottom_wall["res"]),
+                        "k",
+                    )
 
                     plt.annotate(
                         f"Target {jj}",
@@ -294,8 +279,7 @@ def main():
                     targets_list[i],
                     top_wall,
                     bottom_wall,
-                    middle,
-                    obstacles,
+                    y_offset,
                 )
 
 

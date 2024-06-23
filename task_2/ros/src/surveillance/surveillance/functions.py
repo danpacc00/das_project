@@ -118,7 +118,7 @@ def animation(XX, horizon, Adj, targets):
         plt.clf()
 
 
-def animation2(XX, horizon, Adj, targets, top_wall, bottom_wall, middle, obstacles):
+def animation2(XX, horizon, Adj, targets, top_wall, bottom_wall, y_offset):
     NN = XX.shape[1]
 
     plt.figure(figsize=(20, 20))
@@ -132,7 +132,6 @@ def animation2(XX, horizon, Adj, targets, top_wall, bottom_wall, middle, obstacl
             alpha=0.5,
         )
 
-        # plot corridor
         plt.plot(
             np.linspace(top_wall["x_start"], top_wall["x_end"], top_wall["res"]),
             np.tile(top_wall["y"], top_wall["res"]),
@@ -144,13 +143,35 @@ def animation2(XX, horizon, Adj, targets, top_wall, bottom_wall, middle, obstacl
             "k",
         )
         plt.plot(
-            np.linspace(middle[0] + top_wall["x_start"], middle[0] + top_wall["x_end"], top_wall["res"]),
-            np.tile(middle[1], bottom_wall["res"]),
-            linestyle="dashed",
-            color=gray_O4S,
-            alpha=0.2,
+            np.linspace(top_wall["x_start"], top_wall["x_end"], top_wall["res"]),
+            np.tile(top_wall["y"], top_wall["res"]),
+            "k",
         )
-        plt.plot(obstacles[:, 0], obstacles[:, 1], "o")
+        plt.plot(
+            np.linspace(bottom_wall["x_start"], bottom_wall["x_end"], bottom_wall["res"]),
+            np.tile(bottom_wall["y"], bottom_wall["res"]),
+            "k",
+        )
+        plt.plot(
+            np.tile(top_wall["x_start"], top_wall["res"]),
+            np.linspace(top_wall["y"], top_wall["y"] + y_offset * 4, top_wall["res"]),
+            "k",
+        )
+        plt.plot(
+            np.tile(bottom_wall["x_start"], bottom_wall["res"]),
+            np.linspace(bottom_wall["y"], bottom_wall["y"] - y_offset * 4, bottom_wall["res"]),
+            "k",
+        )
+        plt.plot(
+            np.tile(top_wall["x_end"], top_wall["res"]),
+            np.linspace(top_wall["y"], top_wall["y"] + y_offset * 4, top_wall["res"]),
+            "k",
+        )
+        plt.plot(
+            np.tile(bottom_wall["x_end"], bottom_wall["res"]),
+            np.linspace(bottom_wall["y"], bottom_wall["y"] - y_offset * 4, bottom_wall["res"]),
+            "k",
+        )
 
         # plot targets
         for ii in range(targets.shape[0]):

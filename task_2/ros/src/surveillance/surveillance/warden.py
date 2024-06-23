@@ -30,6 +30,7 @@ class Warden(Node):
         self.initial_alpha = self.alpha
         self.cost_type = self.get_parameter("cost_type").value or DEFAULT_COST_TYPE
         self.max_iters = self.get_parameter("max_iters").value
+        self.tradeoff = self.get_parameter("tradeoff").value
 
         self._debug(
             f"Starting warden {self.id} at position x = {self.initial_pose[0]}, y = {self.initial_pose[1]} with target x = {self.target_position[0]}, y = {self.target_position[1]}"
@@ -49,7 +50,7 @@ class Warden(Node):
         self._data = []
         self._phi_fn = Identity()
         if self.cost_type == "surveillance":
-            self._cost_fn = SurveillanceCost(tradeoff=1.0)
+            self._cost_fn = SurveillanceCost(tradeoff=self.tradeoff)
         else:
             self._cost_fn = CorridorCostV8(alpha=0.8)
 
@@ -86,6 +87,7 @@ class Warden(Node):
             data = PlotterData()
             data.warden_id = self.id
             data.time = self._simtime
+            data.ss = [float(self._ss[self.id][0][0]), float(self._ss[self.id][0][1])]
             data.zz = [float(self._zz[0][0]), float(self._zz[0][1])]
             data.cost = 0.0
             data.grad = [0.0, 0.0]
@@ -109,6 +111,7 @@ class Warden(Node):
         data = PlotterData()
         data.warden_id = self.id
         data.time = self._simtime
+        data.ss = [float(self._ss[self.id][self._simtime][0]), float(self._ss[self.id][self._simtime][1])]
         data.zz = [float(self._zz[self._simtime][0]), float(self._zz[self._simtime][1])]
         data.cost = cost
         data.grad = [float(grad[0]), float(grad[1])]
