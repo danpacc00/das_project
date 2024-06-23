@@ -121,19 +121,6 @@ def main():
             zz, costs, gradient_magnitude = gt.run(graph, d=dimension, zz0=initial_theta)
 
             if not args.no_plots:
-                # axes = [
-                #     plt.subplot2grid(shape=(2, 6), loc=(0, 0), colspan=2),
-                #     plt.subplot2grid((2, 6), (0, 2), colspan=2),
-                #     plt.subplot2grid((2, 6), (0, 4), colspan=2),
-                #     plt.subplot2grid((2, 6), (1, 1), colspan=2),
-                #     plt.subplot2grid((2, 6), (1, 3), colspan=2),
-                # ]
-                # for i, label in enumerate(["a", "b", "c", "d", "bias"]):
-                #     axes[i].semilogx(np.arange(zz.shape[0]), zz[:, :, i])
-                #     axes[i].grid()
-                #     axes[i].set_xlabel("Iterations")
-                #     axes[i].set_ylabel(label)
-
                 fig, ax = plt.subplots(1, 2, figsize=(20, 10))
                 ax[0].semilogx(np.arange(zz.shape[0]), zz[:, :, 0])
                 ax[0].grid()

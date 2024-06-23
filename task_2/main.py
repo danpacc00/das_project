@@ -19,7 +19,7 @@ np.random.seed(0)
 def main():
     argparser = argparse.ArgumentParser()
     argparser.add_argument("-n", "--nodes", type=int, default=4)
-    argparser.add_argument("-i", "--iters", type=int, default=1000)
+    argparser.add_argument("-i", "--iters", type=int, default=10000)
     argparser.add_argument("--no-plots", action="store_true", default=False)
     argparser.add_argument("--skip", type=str, default="")
     argparser.add_argument("--skip-animations", action="store_true", default=False)
@@ -53,7 +53,7 @@ def main():
 
         tradeoff_list = [1.0, 0.1, 10.0]
 
-        for init_targets in init_targets_list:
+        for case, init_targets in enumerate(init_targets_list):
             for tradeoff in tradeoff_list:
                 zz_init, targets = init_targets
 
@@ -97,31 +97,30 @@ def main():
                             label=f"Trajectory {jj}",
                         )
 
-                        plt.scatter(
-                            zz[-1, jj, 0], zz[-1, jj, 1], color="orange", label=f"Final position {jj}", marker="x"
-                        )
+                        plt.scatter(zz[-1, jj, 0], zz[-1, jj, 1], color="orange", marker="x")
 
                         plt.annotate(
-                            f"$z_{jj}^0$",  # Annotation text
-                            xy=(zz[0, jj, 0], zz[0, jj, 1]),  # Point to annotate
-                            xytext=(zz[0, jj, 0] + 0.2, zz[0, jj, 1] + 0.2),  # Text position (offset)
+                            f"$z_{jj}^0$",
+                            xy=(zz[0, jj, 0], zz[0, jj, 1]),
+                            xytext=(zz[0, jj, 0] + 0.2, zz[0, jj, 1] + 0.2),
                             fontsize=12,
-                            bbox=dict(
-                                boxstyle="round,pad=0.2", facecolor="white", edgecolor="red"
-                            ),  # Bounding box properties
+                            bbox=dict(boxstyle="round,pad=0.2", facecolor="white", edgecolor="red"),
                         )
 
                         plt.plot(targets[:, 0], targets[:, 1], "bx")
                         plt.plot(zz_init[:, 0], zz_init[:, 1], "ro")
 
+                        if case == 0:
+                            label_offsets = [(0.2, 0.2), (-0.2, -0.7), (-0.8, -0.7), (0.2, -0.2)]
+                        else:
+                            label_offsets = [(0.1, 0.2), (0.1, 0.2), (-0.55, -0.35), (-0.55, -0.35)]
+
                         plt.annotate(
-                            f"Target {jj}",  # Annotation text
-                            xy=(targets[jj, 0], targets[jj, 1]),  # Point to annotate
-                            xytext=(targets[jj, 0] - 0.4, targets[jj, 1] + 0.4),  # Text position (offset)
+                            f"Target {jj}",
+                            xy=(targets[jj, 0], targets[jj, 1]),
+                            xytext=(targets[jj, 0] + label_offsets[jj][0], targets[jj, 1] + label_offsets[jj][1]),
                             fontsize=12,
-                            bbox=dict(
-                                boxstyle="round,pad=0.2", facecolor="white", edgecolor="blue"
-                            ),  # Bounding box properties
+                            bbox=dict(boxstyle="round,pad=0.2", facecolor="white", edgecolor="blue"),
                         )
 
                         plt.title(f"Agents trajectories (tradeoff = {tradeoff})")
@@ -139,11 +138,11 @@ def main():
 
         middle = np.array((0, (top_wall["y"] - bottom_wall["y"]) / 2 + bottom_wall["y"]))
 
-        x_offset = 10
+        x_offset = 50
         y_offset = 20
         random_pos_target = np.array(
             (
-                np.random.rand(args.nodes) * top_wall["x_end"] * 10,
+                np.random.rand(args.nodes) * top_wall["x_end"] * 10 + x_offset,
                 np.random.rand(args.nodes) * 40 - 20,
             )
         ).T
@@ -157,7 +156,7 @@ def main():
 
         random_initial_poses = np.array(
             (
-                np.random.rand(args.nodes) * top_wall["x_start"] * 10 + top_wall["x_start"] - x_offset,
+                np.random.rand(args.nodes) * top_wall["x_start"] * 10 - x_offset,
                 np.random.rand(args.nodes) * 10 - 5,
             )
         ).T
@@ -259,9 +258,9 @@ def main():
                     plt.scatter(zz[-1, jj, 0], zz[-1, jj, 1], color="orange", label=f"Final position {jj}", marker="x")
 
                     plt.annotate(
-                        f"$z_{jj}^0$",  # Annotation text
-                        xy=(zz[0, jj, 0], zz[0, jj, 1]),  # Point to annotate
-                        xytext=(zz[0, jj, 0] + 0.2, zz[0, jj, 1] + 0.2),  # Text position (offset)
+                        f"$z_{jj}^0$",
+                        xy=(zz[0, jj, 0], zz[0, jj, 1]),
+                        xytext=(zz[0, jj, 0] - 2.0, zz[0, jj, 1] + 3.5),
                         fontsize=12,
                         bbox=dict(boxstyle="round,pad=0.2", facecolor="white", edgecolor="red"),
                     )
@@ -269,23 +268,20 @@ def main():
                     plt.plot(targets[:, 0], targets[:, 1], "bx")
                     plt.plot(initial_poses_list[i][:, 0], initial_poses_list[i][:, 1], "ro")
 
-                    # add obstacles
                     plt.plot(obstacles[:, 0], obstacles[:, 1], "k.")
 
                     plt.annotate(
-                        f"Target {jj}",  # Annotation text
-                        xy=(targets[jj, 0], targets[jj, 1]),  # Point to annotate
-                        xytext=(targets[jj, 0] - 0.4, targets[jj, 1] + 0.4),  # Text position (offset)
+                        f"Target {jj}",
+                        xy=(targets[jj, 0], targets[jj, 1]),
+                        xytext=(targets[jj, 0] + 3.5, targets[jj, 1] + 2.5),
                         fontsize=12,
-                        bbox=dict(
-                            boxstyle="round,pad=0.2", facecolor="white", edgecolor="blue"
-                        ),  # Bounding box properties
+                        bbox=dict(boxstyle="round,pad=0.2", facecolor="white", edgecolor="blue"),
                     )
 
                     plt.title("Agents trajectories")
 
-                    plt.plot(x, g_1, "g-")
-                    plt.plot(x, g_2, "g-")
+                    plt.plot(x, g_1, color="green", linestyle="dashed")
+                    plt.plot(x, g_2, color="green", linestyle="dashed")
 
                 plt.ylim(-60, 60)
                 plt.show()
