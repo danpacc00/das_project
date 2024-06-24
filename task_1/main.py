@@ -117,7 +117,7 @@ def main():
             cost_fn = LogisticRegressionCost(datasets)
             gt = GradientTracking(cost_fn, max_iters=args.iters, alpha=1e-5)
 
-            graph = nx.path_graph(args.nodes)
+            graph = nx.cycle_graph(args.nodes)
             zz, costs, gradient_magnitude = gt.run(graph, d=dimension, zz0=initial_theta)
 
             if not args.no_plots:
@@ -129,7 +129,7 @@ def main():
                 ax[1].grid()
                 ax[1].set_title("b")
                 plt.suptitle(
-                    f"Gradient tracking with Logistic Regression Cost Function (graph = path, nodes = {args.nodes}, d = {dimension}, iters = {args.iters})"
+                    f"Gradient tracking with Logistic Regression Cost Function (graph = path, nodes = {args.nodes}, d = {dimension}, iters = {len(costs)})"
                 )
                 plt.show()
 
@@ -141,7 +141,7 @@ def main():
                 ax[1].grid()
                 ax[1].set_title("d")
                 plt.suptitle(
-                    f"Gradient tracking with Logistic Regression Cost Function (graph = path, nodes = {args.nodes}, d = {dimension}, iters = {args.iters})"
+                    f"Gradient tracking with Logistic Regression Cost Function (graph = path, nodes = {args.nodes}, d = {dimension}, iters = {len(costs)})"
                 )
                 plt.show()
 
@@ -149,7 +149,7 @@ def main():
                 plt.ylabel("bias")
                 plt.grid()
                 plt.title(
-                    f"Gradient tracking with Logistic Regression Cost Function (graph = path, nodes = {args.nodes}, d = {dimension}, iters = {args.iters})"
+                    f"Gradient tracking with Logistic Regression Cost Function (graph = path, nodes = {args.nodes}, d = {dimension}, iters = {len(costs)})"
                 )
                 plt.show()
 

@@ -53,7 +53,7 @@ def launch_setup(context):
     y_offset = 20
     random_pos_target = np.array(
         (
-            np.random.rand(args["nodes"]) * top_wall["x_end"] * 10 + x_offset,
+            np.random.rand(args["nodes"]) * top_wall["x_end"] * 5 + x_offset,
             np.random.rand(args["nodes"]) * 40 - 20,
         )
     ).T
@@ -67,7 +67,7 @@ def launch_setup(context):
 
     random_initial_poses = np.array(
         (
-            np.random.rand(args["nodes"]) * top_wall["x_start"] * 10 - x_offset,
+            np.random.rand(args["nodes"]) * top_wall["x_start"] * 5 - x_offset,
             np.random.rand(args["nodes"]) * 10 - 5,
         )
     ).T

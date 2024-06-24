@@ -3,12 +3,11 @@ import numpy as np
 
 
 class AggregativeTracking:
-    def __init__(self, cost_fn, phi_fn, max_iters=1000, alpha=1e-2, gamma=0.5):
+    def __init__(self, cost_fn, phi_fn, max_iters=1000, alpha=1e-2):
         self.cost_fn = cost_fn
         self.phi_fn = phi_fn
         self.max_iters = max_iters
         self.initial_alpha = alpha
-        self.gamma = gamma
 
         self.cost = np.zeros(max_iters)
         self.gradient_magnitude = np.zeros(max_iters)

@@ -6,7 +6,7 @@ import rclpy
 from message.msg import NodeData, PlotterData
 from rclpy.node import Node
 
-from surveillance.costs_fn import CorridorCostV8, SurveillanceCost
+from surveillance.costs_fn import CorridorCost, SurveillanceCost
 from surveillance.phi import Identity
 
 DEFAULT_TIMER_PERIOD = 2  # seconds
@@ -52,7 +52,7 @@ class Warden(Node):
         if self.cost_type == "surveillance":
             self._cost_fn = SurveillanceCost(tradeoff=self.tradeoff)
         else:
-            self._cost_fn = CorridorCostV8(alpha=0.8)
+            self._cost_fn = CorridorCost(alpha=0.8)
 
         self._zz = [self.initial_pose]
         self._ss = {jj: [] for jj in self.neighbors}

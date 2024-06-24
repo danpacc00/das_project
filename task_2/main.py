@@ -7,7 +7,7 @@ import numpy as np
 import ros.src.surveillance.surveillance.phi as phi
 from ros.src.surveillance.surveillance.aggregative_tracking import AggregativeTracking
 from ros.src.surveillance.surveillance.costs_fn import (
-    CorridorCostV8,
+    CorridorCost,
     SurveillanceCost,
 )
 from ros.src.surveillance.surveillance.functions import animation, animation2
@@ -19,7 +19,7 @@ np.random.seed(0)
 def main():
     argparser = argparse.ArgumentParser()
     argparser.add_argument("-n", "--nodes", type=int, default=4)
-    argparser.add_argument("-i", "--iters", type=int, default=10000)
+    argparser.add_argument("-i", "--iters", type=int, default=40000)
     argparser.add_argument("--no-plots", action="store_true", default=False)
     argparser.add_argument("--skip", type=str, default="")
     argparser.add_argument("--skip-animations", action="store_true", default=False)
@@ -140,7 +140,7 @@ def main():
         y_offset = 20
         random_pos_target = np.array(
             (
-                np.random.rand(args.nodes) * top_wall["x_end"] * 10 + x_offset,
+                np.random.rand(args.nodes) * top_wall["x_end"] * 5 + x_offset,
                 np.random.rand(args.nodes) * 40 - 20,
             )
         ).T
@@ -154,7 +154,7 @@ def main():
 
         random_initial_poses = np.array(
             (
-                np.random.rand(args.nodes) * top_wall["x_start"] * 10 - x_offset,
+                np.random.rand(args.nodes) * top_wall["x_start"] * 5 - x_offset,
                 np.random.rand(args.nodes) * 10 - 5,
             )
         ).T
@@ -171,8 +171,8 @@ def main():
             x = np.linspace(-60, 60, 100)
             g_1 = 1e-5 * x**4 + 2
             g_2 = -(1e-5 * x**4 + 2)
-            cost = CorridorCostV8(alpha=0.8)
-            algo = AggregativeTracking(cost, phi.Identity(), max_iters=args.iters, alpha=1e-4, gamma=1e-5)
+            cost = CorridorCost(alpha=0.8)
+            algo = AggregativeTracking(cost, phi.Identity(), max_iters=args.iters, alpha=1e-3)
 
             graph = nx.path_graph(args.nodes)
             zz, ss, cost, gradient_magnitude, kk = algo.run(graph, initial_poses_list[i], targets, d=2)
