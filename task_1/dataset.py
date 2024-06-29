@@ -28,8 +28,8 @@ def ellipse_equation(w, bias, x):
 
 
 def create_labeled_dataset(params, M):
-    a = params[0]  # Stretch wrt x-axis
-    b = params[1]  # Tilt wrt x-axis
+    a = params[0]  # Position x
+    b = params[1]  # Position y
     c = params[2]  # Coefficient for x^2. Controls the width of the ellipse
     d = params[3]  # Coefficient for y^2. Controls the height of the ellipse
     e = params[4]
@@ -37,8 +37,8 @@ def create_labeled_dataset(params, M):
     w = np.array([a, b, c, d])  # Weights
     bias = -(e**2)  # Bias
 
-    x_lim = 15
-    y_lim = d
+    x_lim = 1.5
+    y_lim = 1.5
 
     offset = 1.5
 
@@ -77,15 +77,27 @@ def cost_gradient(theta, points):
         return np.dot(w, phi(x)) + bias
 
     gradient = np.zeros(5)
+    # for i in range(len(points)):
+    #     x = points[i, :2]
+    #     p = points[i, 2]
+
+    #     gradient[0] += -p * x[0] * np.exp(-p * sep_fn(x)) / (1 + np.exp(-p * sep_fn(x)))
+    #     gradient[1] += -p * x[1] * np.exp(-p * sep_fn(x)) / (1 + np.exp(-p * sep_fn(x)))
+    #     gradient[2] += -p * x[0] ** 2 * np.exp(-p * sep_fn(x)) / (1 + np.exp(-p * sep_fn(x)))
+    #     gradient[3] += -p * x[1] ** 2 * np.exp(-p * sep_fn(x)) / (1 + np.exp(-p * sep_fn(x)))
+    #     gradient[4] += -p * np.exp(-p * sep_fn(x)) / (1 + np.exp(-p * sep_fn(x)))
+
     for i in range(len(points)):
         x = points[i, :2]
         p = points[i, 2]
+        exp_term = np.exp(-p * sep_fn(x))
+        denom = 1 + exp_term
 
-        gradient[0] += -p * x[0] * np.exp(-p * sep_fn(x)) / (1 + np.exp(-p * sep_fn(x)))
-        gradient[1] += -p * x[1] * np.exp(-p * sep_fn(x)) / (1 + np.exp(-p * sep_fn(x)))
-        gradient[2] += -p * x[0] ** 2 * np.exp(-p * sep_fn(x)) / (1 + np.exp(-p * sep_fn(x)))
-        gradient[3] += -p * x[1] ** 2 * np.exp(-p * sep_fn(x)) / (1 + np.exp(-p * sep_fn(x)))
-        gradient[4] += -p * np.exp(-p * sep_fn(x)) / (1 + np.exp(-p * sep_fn(x)))
+        gradient[0] += -p * x[0] * exp_term / denom
+        gradient[1] += -p * x[1] * exp_term / denom
+        gradient[2] += -p * x[0] ** 2 * exp_term / denom
+        gradient[3] += -p * x[1] ** 2 * exp_term / denom
+        gradient[4] += -p * exp_term / denom
 
     return gradient
 
@@ -105,9 +117,6 @@ def centralized_gradient(dataset, initial_theta=None, alpha=1e-4, max_iters=1000
         gradient_magnitude[ii] = np.linalg.norm(gradient)
 
         print(f"Iteration: #{ii}, Cost: {costs[ii]:.2f}, Gradient Magnitude: {gradient_magnitude[ii]:.2f}")
-
-        if gradient_magnitude[ii] < 1e-2:
-            break
 
     return theta, costs[: ii + 1], gradient_magnitude[: ii + 1]
 

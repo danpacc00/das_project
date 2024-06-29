@@ -75,24 +75,33 @@ def main():
 
                 plt.show()
 
+    # params_list = [
+    #     np.array((1.0, 2.0, 1.0, 2.5, 1)),  # Horizontal ellipse
+    #     np.array((1.5, -0.5, 1.5, 0.5, 1.0)),  # Vertical ellipse
+    #     np.array((3.0, 2.0, 1.0, -2.5, 0.5)),  # Parabola
+    # ]
+
+    # Make params_list a list of dictionaries with the parameters and the stepsize
     params_list = [
-        np.array((9.0, 2.0, 1.0, 5.0, 0.5)),
-        np.array((9.0, 2.0, 1.0, -5.0, 0.5)),
-        np.random.uniform(1, 10, size=5).round(),
+        {"values": np.array((3.5, 2.0, 1.0, -2.5, 0.5)), "stepsize": 5e-3, "max_iters": 3500},  # Parabola
+        {"values": np.array((1.5, -0.5, 1.5, 0.5, 1.0)), "stepsize": 1e-3, "max_iters": 3500},  # Vertical ellipse
+        {"values": np.array((1.0, 2.0, 1.0, 2.5, 1)), "stepsize": 1e-2, "max_iters": 1500},  # Horizontal ellipse -OK
     ]
-    dimension = params_list[0].shape[0]
+
+    dimension = params_list[0]["values"].shape[0]
     datasets = []
 
     for params in params_list:
-        npoints = np.random.randint(200, args.max_points)
-        dataset = create_labeled_dataset(params, M=npoints)
+        npoints = np.random.randint(998, args.max_points)
+        dataset = create_labeled_dataset(params["values"], M=npoints)
         datasets.append(dataset)
 
-        a, b, c, d, e = params
+        a, b, c, d, e = params["values"]
         real_theta = np.array((a, b, c, d, -(e**2)))
-        initial_theta = real_theta + real_theta * 0.7
+        # initial_theta = real_theta + real_theta * 0.7
+        initial_theta = np.random.uniform(-5, 5, size=dimension)
         real_classifier = {
-            "params": params,
+            "params": params["values"],
             "color": "green",
             "label": f"Real Separating Function (${a}x+{b}y+{c}x^2+{d}y^2={e}^2$)",
         }
@@ -105,7 +114,7 @@ def main():
         # Task 1.2
         if 2 not in skipped:
             theta_hat, costs, gradient_magnitude = centralized_gradient(
-                dataset, initial_theta=initial_theta.copy(), max_iters=args.iters, alpha=1e-5, d=dimension
+                dataset, initial_theta=initial_theta.copy(), max_iters=args.iters, alpha=1e-2, d=dimension
             )
             plot.results(
                 dataset, theta_hat, real_theta, costs, gradient_magnitude, title="Centralised gradient classification"
@@ -115,7 +124,7 @@ def main():
         if 3 not in skipped:
             datasets = np.array_split(dataset, args.nodes)
             cost_fn = LogisticRegressionCost(datasets)
-            gt = GradientTracking(cost_fn, max_iters=args.iters, alpha=1e-5)
+            gt = GradientTracking(cost_fn, max_iters=params["max_iters"], alpha=params["stepsize"])
 
             graph = nx.cycle_graph(args.nodes)
             zz, costs, gradient_magnitude = gt.run(graph, d=dimension, zz0=initial_theta)
@@ -161,7 +170,7 @@ def main():
                     costs,
                     gradient_magnitude,
                     no_plots=args.no_plots,
-                    title="Distributed gradient classification",
+                    title="Gradient Tracking classification",
                 )
 
 

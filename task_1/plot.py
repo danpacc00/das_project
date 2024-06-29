@@ -5,7 +5,7 @@ from matplotlib.lines import Line2D
 
 
 def classification_results(costs, gradient_norms):
-    _, axs = plt.subplots(1, 2)
+    _, axs = plt.subplots(1, 2, figsize=(20, 10))
 
     axs[0].semilogy(costs, color="blue")
     axs[0].set_xlabel("Iteration")
@@ -23,7 +23,7 @@ def classification_results(costs, gradient_norms):
 
 
 def dataset(title, dataset, *classifiers, **kwargs):
-    plt.figure()
+    plt.figure(figsize=(10, 10))
     plt.scatter(dataset[dataset[:, 2] == 1, 0], dataset[dataset[:, 2] == 1, 1], color="blue")
     plt.scatter(dataset[dataset[:, 2] == -1, 0], dataset[dataset[:, 2] == -1, 1], color="red")
 
