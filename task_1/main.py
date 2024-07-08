@@ -10,7 +10,7 @@ from dataset import centralized_gradient, create_labeled_dataset
 from gradient_tracking import GradientTracking
 
 signal.signal(signal.SIGINT, signal.SIG_DFL)
-np.random.seed(0)
+# np.random.seed(0)
 
 
 def main():
@@ -18,7 +18,7 @@ def main():
     argparser = argparse.ArgumentParser()
     argparser.add_argument("-n", "--nodes", type=int, default=10)
     argparser.add_argument("-d", "--dimension", type=int, default=2)
-    argparser.add_argument("-i", "--iters", type=int, default=2000)
+    argparser.add_argument("-i", "--iters", type=int, default=1000)
     argparser.add_argument("-p", "--max-points", type=int, default=1000)
     argparser.add_argument("--no-plots", action="store_true", default=False)
     argparser.add_argument("--skip", type=str, default="")
@@ -60,6 +60,13 @@ def main():
                 ax[1].grid()
                 ax[1].set_title("x1")
 
+                # add labels on x and y axis
+                ax[0].set_xlabel("Iterations (logarithmic scale)")
+                ax[0].set_ylabel("x0")
+
+                ax[1].set_xlabel("Iterations (logarithmic scale)")
+                ax[1].set_ylabel("x1")
+
                 plt.show()
 
                 fig, ax = plt.subplots(1, 2, figsize=(10, 10))
@@ -73,6 +80,13 @@ def main():
                 ax[1].grid()
                 ax[1].set_title("Gradient magnitude")
 
+                # add labels on x and y axis
+                ax[0].set_xlabel("Iterations")
+                ax[0].set_ylabel("Cost (logarithmic scale)")
+
+                ax[1].set_xlabel("Iterations")
+                ax[1].set_ylabel("Gradient magnitude (logarithmic scale)")
+
                 plt.show()
 
     # params_list = [
@@ -83,16 +97,17 @@ def main():
 
     # Make params_list a list of dictionaries with the parameters and the stepsize
     params_list = [
-        {"values": np.array((3.5, 2.0, 1.0, -2.5, 0.5)), "stepsize": 5e-3, "max_iters": 3500},  # Parabola
         {"values": np.array((1.5, -0.5, 1.5, 0.5, 1.0)), "stepsize": 1e-3, "max_iters": 3500},  # Vertical ellipse
         {"values": np.array((1.0, 2.0, 1.0, 2.5, 1)), "stepsize": 1e-2, "max_iters": 1500},  # Horizontal ellipse -OK
+        {"values": np.array((3.5, 2.0, 1.0, -2.5, 0.5)), "stepsize": 5e-3, "max_iters": 3500},  # Parabola
     ]
 
     dimension = params_list[0]["values"].shape[0]
     datasets = []
 
     for params in params_list:
-        npoints = np.random.randint(998, args.max_points)
+        # npoints = np.random.randint(500, args.max_points)
+        npoints = 1000
         dataset = create_labeled_dataset(params["values"], M=npoints)
         datasets.append(dataset)
 
@@ -100,10 +115,18 @@ def main():
         real_theta = np.array((a, b, c, d, -(e**2)))
         # initial_theta = real_theta + real_theta * 0.7
         initial_theta = np.random.uniform(-5, 5, size=dimension)
+
+        label = f"Real Separating Function (${a}x+{b}y+{c}x^2+{d}y^2={e}^2$)"
+
+        if b < 0:
+            label = f"Real Separating Function (${a}x{b}y+{c}x^2+{d}y^2={e}^2$)"
+        elif d < 0:
+            label = f"Real Separating Function (${a}x+{b}y+{c}x^2{d}y^2={e}^2$)"
+
         real_classifier = {
             "params": params["values"],
             "color": "green",
-            "label": f"Real Separating Function (${a}x+{b}y+{c}x^2+{d}y^2={e}^2$)",
+            "label": label,
         }
 
         if not args.no_plots:

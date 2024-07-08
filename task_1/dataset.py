@@ -134,4 +134,4 @@ def classification_error(dataset, theta):
             error += 1
             misclassified.append(x)
 
-    return error / len(dataset), misclassified
+    return 100 * (error / len(dataset)), misclassified

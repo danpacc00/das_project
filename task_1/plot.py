@@ -30,7 +30,7 @@ def dataset(title, dataset, *classifiers, **kwargs):
     if "misclassified" in kwargs:
         misclassified = kwargs["misclassified"]
         for x in misclassified:
-            plt.scatter(x[0], x[1], color="magenta")
+            plt.scatter(x[0], x[1], color="magenta", marker="x", s=100, linewidth=4, label="Misclassified")
 
     x = np.linspace(np.min(dataset[:, 0]), np.max(dataset[:, 0]), 10000)
 
@@ -74,7 +74,7 @@ def _get_classifier(theta, type):
         return {
             "params": params,
             "color": "orange",
-            "label": f"Estimated Separating Function (${a}x+{b}y+{c}x^2+{d}y^2={e}^2$)",
+            "label": f"Estimated Separating Function (${{{a:.2f}}}x+{{{b:.2f}}}y+{{{c:.2f}}}x^2+{{{d:.2f}}}y^2={{{e:.2f}}}$)",
         }
 
 
@@ -84,7 +84,7 @@ def results(data, theta_hat, real_theta, costs, gradient_magnitude, title, no_pl
     print(f"Estimated parameters: a = {a:.2f}, b = {b:.2f}, c = {c:.2f}, d = {d:.2f}, e = {e:.2f}")
 
     error, misclassified = classification_error(data, theta_hat)
-    print(f"Classification error: {error}")
+    print(f"Classification error: {error} %")
 
     if not no_plots:
         classification_results(costs, gradient_magnitude)
