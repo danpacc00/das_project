@@ -12,12 +12,12 @@ from gradient_tracking import GradientTracking
 signal.signal(signal.SIGINT, signal.SIG_DFL)
 # np.random.seed(0)
 
+DIM = 2
 
 def main():
     # Task 1.1
     argparser = argparse.ArgumentParser()
     argparser.add_argument("-n", "--nodes", type=int, default=10)
-    argparser.add_argument("-d", "--dimension", type=int, default=2)
     argparser.add_argument("-i", "--iters", type=int, default=1000)
     argparser.add_argument("-p", "--max-points", type=int, default=1000)
     argparser.add_argument("--no-plots", action="store_true", default=False)
@@ -36,21 +36,21 @@ def main():
 
     # Task 1.1
     if 1 not in skipped:
-        zz0 = np.random.uniform(-5, 5, size=(args.nodes, args.dimension))
+        zz0 = np.random.uniform(-5, 5, size=(args.nodes, DIM))
         for graph_opt in graphs:
             graph = graph_opt["fn"](args.nodes - 1 if graph_opt["name"] == "star" else args.nodes)
 
-            cost_fn = QuadraticCost(args.nodes, d=args.dimension)
+            cost_fn = QuadraticCost(args.nodes, d=DIM)
             gt = GradientTracking(cost_fn, max_iters=args.iters, alpha=1e-2)
 
-            zz, cost, gradient_magnitude = gt.run(graph, d=args.dimension, zz0=zz0.copy())
+            zz, cost, gradient_magnitude = gt.run(graph, d=DIM, zz0=zz0.copy())
 
             print("Optimal value: ", cost_fn.optimal())
 
             if not args.no_plots:
                 fig, ax = plt.subplots(1, 2, figsize=(10, 10))
                 fig.suptitle(
-                    f"Gradient tracking with Quadratic Cost Function (Graph = {graph_opt['name']}, N = {args.nodes}, d = {args.dimension}, Iterations = {len(cost)})"
+                    f"Gradient tracking with Quadratic Cost Function (Graph = {graph_opt['name']}, N = {args.nodes}, d = {DIM}, Iterations = {len(cost)})"
                 )
 
                 ax[0].semilogx(np.arange(zz.shape[0]), zz[:, :, 0])
@@ -71,7 +71,7 @@ def main():
 
                 fig, ax = plt.subplots(1, 2, figsize=(10, 10))
                 fig.suptitle(
-                    f"Gradient tracking with Quadratic Cost Function (Graph = {graph_opt['name']}, N = {args.nodes}, d = {args.dimension}, Iterations = {len(cost)})"
+                    f"Gradient tracking with Quadratic Cost Function (Graph = {graph_opt['name']}, N = {args.nodes}, d = {DIM}, Iterations = {len(cost)})"
                 )
                 ax[0].semilogy(np.arange(zz.shape[0] - 1), cost[:-1])
                 ax[0].grid()
@@ -88,12 +88,6 @@ def main():
                 ax[1].set_ylabel("Gradient magnitude (logarithmic scale)")
 
                 plt.show()
-
-    # params_list = [
-    #     np.array((1.0, 2.0, 1.0, 2.5, 1)),  # Horizontal ellipse
-    #     np.array((1.5, -0.5, 1.5, 0.5, 1.0)),  # Vertical ellipse
-    #     np.array((3.0, 2.0, 1.0, -2.5, 0.5)),  # Parabola
-    # ]
 
     # Make params_list a list of dictionaries with the parameters and the stepsize
     params_list = [

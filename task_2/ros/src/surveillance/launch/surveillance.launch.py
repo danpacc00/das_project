@@ -28,7 +28,7 @@ LAUNCH_ARGS = [
     DeclareLaunchArgument("tradeoff"),
     DeclareLaunchArgument("distance"),
     DeclareLaunchArgument("timer_period", default_value="0.01"),
-    DeclareLaunchArgument("max_iters", default_value="10000"),
+    DeclareLaunchArgument("max_iters", default_value="40000"),
 ]
 
 
