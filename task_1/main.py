@@ -14,6 +14,7 @@ signal.signal(signal.SIGINT, signal.SIG_DFL)
 
 DIM = 2
 
+
 def main():
     # Task 1.1
     argparser = argparse.ArgumentParser()
@@ -155,7 +156,7 @@ def main():
                 ax[1].grid()
                 ax[1].set_title("b")
                 plt.suptitle(
-                    f"Gradient tracking with Logistic Regression Cost Function (graph = path, nodes = {args.nodes}, d = {dimension}, iters = {len(costs)})"
+                    f"Gradient tracking with Logistic Regression Cost Function (graph = Cycle, nodes = {args.nodes}, d = {dimension}, iters = {len(costs)})"
                 )
                 plt.show()
 
@@ -167,7 +168,7 @@ def main():
                 ax[1].grid()
                 ax[1].set_title("d")
                 plt.suptitle(
-                    f"Gradient tracking with Logistic Regression Cost Function (graph = path, nodes = {args.nodes}, d = {dimension}, iters = {len(costs)})"
+                    f"Gradient tracking with Logistic Regression Cost Function (graph = Cycle, nodes = {args.nodes}, d = {dimension}, iters = {len(costs)})"
                 )
                 plt.show()
 
@@ -175,7 +176,7 @@ def main():
                 plt.ylabel("bias")
                 plt.grid()
                 plt.title(
-                    f"Gradient tracking with Logistic Regression Cost Function (graph = path, nodes = {args.nodes}, d = {dimension}, iters = {len(costs)})"
+                    f"Gradient tracking with Logistic Regression Cost Function (graph = Cycle, nodes = {args.nodes}, d = {dimension}, iters = {len(costs)})"
                 )
                 plt.show()
 
