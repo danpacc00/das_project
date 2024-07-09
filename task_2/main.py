@@ -10,7 +10,7 @@ from ros.src.surveillance.surveillance.costs_fn import (
     CorridorCost,
     SurveillanceCost,
 )
-from ros.src.surveillance.surveillance.functions import animation, animation2
+from ros.src.surveillance.surveillance.functions import simple_animation, corridor_animation
 
 signal.signal(signal.SIGINT, signal.SIG_DFL)
 np.random.seed(0)
@@ -26,24 +26,12 @@ def main():
 
     args = argparser.parse_args()
 
+    # Compute the list of tasks to skip
     skipped = [int(item) for item in args.skip.split(",")] if args.skip else []
 
-    # Task 2.1: different tuning parameter of cost function, different targets
-    # Case 1 - Targets far, tradeoff = 1.0
-    # Case 2 - Same targets, tradeoff = 0.1
-    # Case 3 - Same targets, tradeoff = 10.0
-    # Case 4 - Targets close, tradeoff = 1.0
-    # Case 5 - Targets close, tradeoff = 0.1
-    # Case 6 - Targets close, tradeoff = 10.0
-
-    # Comment: If the tradeoff tends to 0, the robots are very close to each other but they struggle to reach the targets.
-    # If the tradeoff tends to be large, the robots are very close to the targets but they are far from each other.
-    # Tradeoff = 1.0 shows a good behaviour.
-
-    # If the initial distance between the targets diminishes, the behaviour is always the same.
-    # However, with larger distance and low tradeoff, the robots also with 1000 iterations are very far from targets.
-
+    # Task 2.1
     if 1 not in skipped:
+        # Represent a sort of initial distance between the agents and their targets
         distances = [10, 1]
 
         targets = np.random.rand(args.nodes, 2) * 10
@@ -51,9 +39,14 @@ def main():
 
         init_targets_list = [(zz_init - distance / 2, targets + distance / 2) for distance in distances]
 
+        # Represent the importance given to the miniiization of the distance between the agent and its target.
+        # The higher the value, the more the agent will try to reach its target no matter if it goes far from
+        # the barycenter of the formation.
         tradeoff_list = [1.0, 0.1, 10.0]
 
         for case, init_targets in enumerate(init_targets_list):
+
+            # For each case, we will try different tradeoff values
             for tradeoff in tradeoff_list:
                 zz_init, targets = init_targets
 
@@ -86,7 +79,6 @@ def main():
                     plt.suptitle(f"Aggregative tracking with tradeoff = {tradeoff}")
                     plt.show()
 
-                    # plot trajectories
                     for jj in range(args.nodes):
                         plt.plot(
                             zz[:, jj, 0],
@@ -97,8 +89,10 @@ def main():
                             label=f"Trajectory {jj}",
                         )
 
+                        # Plot the final position of the agent
                         plt.scatter(zz[-1, jj, 0], zz[-1, jj, 1], color="orange", marker="x")
 
+                        # Annotate the initial position of the agent
                         plt.annotate(
                             f"$z_{jj}^0$",
                             xy=(zz[0, jj, 0], zz[0, jj, 1]),
@@ -115,6 +109,7 @@ def main():
                         else:
                             label_offsets = [(0.1, 0.2), (0.1, 0.2), (-0.55, -0.35), (-0.55, -0.35)]
 
+                        # Annotate the target position
                         plt.annotate(
                             f"Target {jj}",
                             xy=(targets[jj, 0], targets[jj, 1]),
@@ -130,14 +125,20 @@ def main():
                     plt.show()
 
                 if not args.skip_animations:
-                    animation(zz, np.linspace(0, kk, kk), nx.adjacency_matrix(graph).toarray(), targets)
+                    simple_animation(zz, np.linspace(0, kk, kk), nx.adjacency_matrix(graph).toarray(), targets)
 
+    # Task 2.3 (Python version)
     if 3 not in skipped:
+        # Define the walls of the corridor ("res" is the number of points to plot the wall)
         top_wall = {"x_start": -15, "x_end": 15, "y": 5, "res": 1000}
         bottom_wall = {"x_start": -15, "x_end": 15, "y": -5, "res": 1000}
 
+        # Distances of the agents and targets from the corridor, both
+        # in the x and y directions
         x_offset = 50
         y_offset = 20
+
+        # First a random position for each target is generated
         random_pos_target = np.array(
             (
                 np.random.rand(args.nodes) * top_wall["x_end"] * 5 + x_offset,
@@ -145,6 +146,8 @@ def main():
             )
         ).T
 
+        # Then, we create a set of experiments in which we shift the position along the y-axis
+        # in order to test the robustness of the algorithm in different scenarios
         targets_list = [
             random_pos_target,
             np.column_stack((random_pos_target[:, 0], random_pos_target[:, 1] + y_offset)),
@@ -152,6 +155,7 @@ def main():
             np.column_stack((random_pos_target[:, 0], random_pos_target[:, 1] + y_offset)),
         ]
 
+        # Generate a random initial position for each agent
         random_initial_poses = np.array(
             (
                 np.random.rand(args.nodes) * top_wall["x_start"] * 5 - x_offset,
@@ -159,6 +163,7 @@ def main():
             )
         ).T
 
+        # Do the same of line 151 but for the agents
         initial_poses_list = [
             random_initial_poses,
             np.column_stack((random_initial_poses[:, 0], random_initial_poses[:, 1] + y_offset)),
@@ -169,8 +174,11 @@ def main():
         for i in range(len(targets_list)):
             targets = targets_list[i]
             x = np.linspace(-60, 60, 100)
+
+            # Define the barrier functions used to avoid collisions with the corridor walls
             g_1 = 1e-5 * x**4 + 2
             g_2 = -(1e-5 * x**4 + 2)
+            
             cost = CorridorCost(alpha=0.8)
             algo = AggregativeTracking(cost, phi.Identity(), max_iters=args.iters, alpha=1e-3)
 
@@ -200,7 +208,6 @@ def main():
                 plt.suptitle("Aggregative tracking (obstacles case)")
                 plt.show()
 
-                # plot trajectories
                 for jj in range(args.nodes):
                     plt.plot(
                         zz[:, jj, 0],
@@ -211,6 +218,7 @@ def main():
                         label=f"Trajectory {jj}",
                     )
 
+                    # Plot the final position of the agents
                     plt.scatter(zz[-1, jj, 0], zz[-1, jj, 1], color="orange", label=f"Final position {jj}", marker="x")
 
                     plt.annotate(
@@ -224,6 +232,7 @@ def main():
                     plt.plot(targets[:, 0], targets[:, 1], "bx")
                     plt.plot(initial_poses_list[i][:, 0], initial_poses_list[i][:, 1], "ro")
 
+                    # Plot the corridor walls
                     plt.plot(
                         np.linspace(top_wall["x_start"], top_wall["x_end"], top_wall["res"]),
                         np.tile(top_wall["y"], top_wall["res"]),
@@ -265,6 +274,8 @@ def main():
 
                     plt.title("Agents trajectories")
 
+                    # Plot the barrier functions (they are "inside" the corridor since they are used to 
+                    # keep the agents away from the walls while they are moving inside the corridor)
                     plt.plot(x, g_1, color="green", linestyle="dashed")
                     plt.plot(x, g_2, color="green", linestyle="dashed")
 
@@ -272,7 +283,7 @@ def main():
                 plt.show()
 
             if not args.skip_animations:
-                animation2(
+                corridor_animation(
                     zz,
                     np.linspace(0, kk, kk),
                     nx.adjacency_matrix(graph).toarray(),

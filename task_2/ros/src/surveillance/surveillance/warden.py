@@ -13,6 +13,9 @@ DEFAULT_TIMER_PERIOD = 2  # seconds
 DEFAULT_ALPHA = 1e-2  # stepsize
 DEFAULT_COST_TYPE = "corridor"
 
+# ROS2 node that implements an agent that tries to reach a target position 
+# while keeping a tight formation with its neighbors and eventually avoiding
+# collision with a corridor.
 
 class Warden(Node):
     def __init__(self):
@@ -46,7 +49,7 @@ class Warden(Node):
         self._publisher = self.create_publisher(NodeData, f"/warden_{self.id}", 10)
         self._plotter_pub = self.create_publisher(PlotterData, "/plotter", 10)
         self._timer = self.create_timer(self.timer_period, self._timer_callback)
-        self._simtime = 0
+        self._simtime = 0 # simulation time (equivalent of the iteration number in the python version)
         self._data = []
         self._phi_fn = Identity()
         if self.cost_type == "surveillance":
@@ -58,8 +61,9 @@ class Warden(Node):
         self._ss = {jj: [] for jj in self.neighbors}
         self._vv = {jj: [] for jj in self.neighbors}
 
+        # Initialize the estimates of the aggregative tracking "proxy" values
         self._ss[self.id] = [self._phi_fn(self._zz[0])[0]]
-        self._vv[self.id] = [self._cost_fn(self.target_position, self._zz[0], self._ss[self.id][0], 0)[2]]
+        self._vv[self.id] = [self._cost_fn(self.target_position, self._zz[0], self._ss[self.id][0])[2]]
 
     def _neighbor_callback(self, msg):
         neighbor_id = msg.warden_id
@@ -71,6 +75,9 @@ class Warden(Node):
         self._vv[neighbor_id].append(np.array(vv))
         self._debug(f"Received data from neighbor {neighbor_id} for time {time}: ss = {ss}, vv = {vv}")
 
+    # Timer callback that implements the main loop of the aggregative tracking algorithm
+    # and publishes the data to the other nodes and the plotter (the node that collects
+    # all the simulation data and plots the results at end of the simulation)
     def _timer_callback(self):
         msg = NodeData()
         msg.warden_id = self.id
@@ -97,17 +104,20 @@ class Warden(Node):
             self._simtime += 1
             return
 
+        # Check if all neighbors have sent their data
         all_received = all(len(self._ss[neighbor_id]) >= self._simtime for neighbor_id in self.neighbors)
         if not all_received:
             self._debug("Waiting for all neighbors to respond...")
             return
 
-        self._debug(f"All neighbors have responded. Updating pose for time {self._simtime}...")
+        # Update the estimates and publish the data to the other nodes
+        self._debug(f"All neighbors have responded. Updating estimates for time {self._simtime}...")
         cost, grad = self._update()
         msg.ss = [self._ss[self.id][self._simtime][0], self._ss[self.id][self._simtime][1]]
         msg.vv = [self._vv[self.id][self._simtime][0], self._vv[self.id][self._simtime][1]]
         self._publisher.publish(msg)
 
+        # Publish the data to the plotter
         data = PlotterData()
         data.warden_id = self.id
         data.time = self._simtime
@@ -120,6 +130,7 @@ class Warden(Node):
 
         self._simtime += 1
 
+    # Implements the update step of the aggregative tracking algorithm
     def _update(self):
         self._debug("Updating...")
         kk = self._simtime
@@ -132,7 +143,7 @@ class Warden(Node):
             self._ss[ii][kk][:] += weight * self._ss[jj][kk - 1][:]
             self._vv[ii][kk][:] += weight * self._vv[jj][kk - 1][:]
 
-        li_nabla_1 = self._cost_fn(self.target_position, self._zz[kk - 1], self._ss[ii][kk - 1], kk)[1]
+        li_nabla_1 = self._cost_fn(self.target_position, self._zz[kk - 1], self._ss[ii][kk - 1])[1]
         _, phi_grad = self._phi_fn(self._zz[kk - 1])
 
         if self.cost_type == "corridor":
@@ -148,12 +159,12 @@ class Warden(Node):
 
         self._ss[ii][kk] += self._phi_fn(self._zz[kk])[0] - self._phi_fn(self._zz[kk - 1])[0]
         self._vv[ii][kk] += (
-            self._cost_fn(self.target_position, self._zz[kk], self._ss[ii][kk], kk)[2]
-            - self._cost_fn(self.target_position, self._zz[kk - 1], self._ss[ii][kk - 1], kk)[2]
+            self._cost_fn(self.target_position, self._zz[kk], self._ss[ii][kk])[2]
+            - self._cost_fn(self.target_position, self._zz[kk - 1], self._ss[ii][kk - 1])[2]
         )
 
-        cost, li_nabla_1, li_nabla_2 = self._cost_fn(self.target_position, self._zz[kk], self._ss[ii][kk], kk)
-        total_grad = li_nabla_1 + li_nabla_2
+        cost, li_nabla_1, li_nabla_2 = self._cost_fn(self.target_position, self._zz[kk], self._ss[ii][kk])
+        total_grad = li_nabla_1 + li_nabla_2 #TODO: fix this
         return cost, total_grad
 
     def _debug(self, msg):

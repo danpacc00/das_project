@@ -3,7 +3,6 @@ import numpy as np
 from dataset import classification_error, ellipse_equation
 from matplotlib.lines import Line2D
 
-
 def classification_results(costs, gradient_norms):
     _, axs = plt.subplots(1, 2, figsize=(20, 10))
 
@@ -27,6 +26,7 @@ def dataset(title, dataset, *classifiers, **kwargs):
     plt.scatter(dataset[dataset[:, 2] == 1, 0], dataset[dataset[:, 2] == 1, 1], color="blue")
     plt.scatter(dataset[dataset[:, 2] == -1, 0], dataset[dataset[:, 2] == -1, 1], color="red")
 
+    # If the user provided misclassified points, plot them
     if "misclassified" in kwargs:
         misclassified = kwargs["misclassified"]
         for x in misclassified:
@@ -35,6 +35,8 @@ def dataset(title, dataset, *classifiers, **kwargs):
     x = np.linspace(np.min(dataset[:, 0]), np.max(dataset[:, 0]), 10000)
 
     legend_items = []
+    # Plot every classifier provided on the same plot in order to compare them 
+    # (usually they are the real one and the estimated one)
     for classifier in classifiers:
         a, b, c, d, e = classifier["params"]
         w = np.array([a, b, c, d])
@@ -57,7 +59,7 @@ def dataset(title, dataset, *classifiers, **kwargs):
     plt.grid(True)
     plt.show()
 
-
+# Just a helper function to construct the "classifier object"
 def _get_classifier(theta, type):
     w, bias = theta[:4], theta[4]
     a, b, c, d = w

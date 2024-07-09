@@ -12,11 +12,7 @@ from gradient_tracking import GradientTracking
 signal.signal(signal.SIGINT, signal.SIG_DFL)
 # np.random.seed(0)
 
-DIM = 2
-
-
 def main():
-    # Task 1.1
     argparser = argparse.ArgumentParser()
     argparser.add_argument("-n", "--nodes", type=int, default=10)
     argparser.add_argument("-i", "--iters", type=int, default=1000)
@@ -26,6 +22,7 @@ def main():
 
     args = argparser.parse_args()
 
+    # Compute the list of tasks to skip
     skipped = [int(item) for item in args.skip.split(",")] if args.skip else []
 
     graphs = [
@@ -37,21 +34,23 @@ def main():
 
     # Task 1.1
     if 1 not in skipped:
-        zz0 = np.random.uniform(-5, 5, size=(args.nodes, DIM))
+        dim = 2
+        zz0 = np.random.uniform(-5, 5, size=(args.nodes, dim))
         for graph_opt in graphs:
+            # The the nx library, the star graph central node does not count in the total number of nodes
+            # so to obtain the desired number of nodes, we need to subtract 1
             graph = graph_opt["fn"](args.nodes - 1 if graph_opt["name"] == "star" else args.nodes)
 
-            cost_fn = QuadraticCost(args.nodes, d=DIM)
+            cost_fn = QuadraticCost(args.nodes, d=dim)
             gt = GradientTracking(cost_fn, max_iters=args.iters, alpha=1e-2)
 
-            zz, cost, gradient_magnitude = gt.run(graph, d=DIM, zz0=zz0.copy())
-
+            zz, cost, gradient_magnitude = gt.run(graph, d=dim, zz0=zz0.copy())
             print("Optimal value: ", cost_fn.optimal())
 
             if not args.no_plots:
                 fig, ax = plt.subplots(1, 2, figsize=(10, 10))
                 fig.suptitle(
-                    f"Gradient tracking with Quadratic Cost Function (Graph = {graph_opt['name']}, N = {args.nodes}, d = {DIM}, Iterations = {len(cost)})"
+                    f"Gradient tracking with Quadratic Cost Function (Graph = {graph_opt['name']}, N = {args.nodes}, d = {dim}, Iterations = {len(cost)})"
                 )
 
                 ax[0].semilogx(np.arange(zz.shape[0]), zz[:, :, 0])
@@ -61,7 +60,6 @@ def main():
                 ax[1].grid()
                 ax[1].set_title("x1")
 
-                # add labels on x and y axis
                 ax[0].set_xlabel("Iterations (logarithmic scale)")
                 ax[0].set_ylabel("x0")
 
@@ -72,7 +70,7 @@ def main():
 
                 fig, ax = plt.subplots(1, 2, figsize=(10, 10))
                 fig.suptitle(
-                    f"Gradient tracking with Quadratic Cost Function (Graph = {graph_opt['name']}, N = {args.nodes}, d = {DIM}, Iterations = {len(cost)})"
+                    f"Gradient tracking with Quadratic Cost Function (Graph = {graph_opt['name']}, N = {args.nodes}, d = {dim}, Iterations = {len(cost)})"
                 )
                 ax[0].semilogy(np.arange(zz.shape[0] - 1), cost[:-1])
                 ax[0].grid()
@@ -81,7 +79,6 @@ def main():
                 ax[1].grid()
                 ax[1].set_title("Gradient magnitude")
 
-                # add labels on x and y axis
                 ax[0].set_xlabel("Iterations")
                 ax[0].set_ylabel("Cost (logarithmic scale)")
 
@@ -90,17 +87,18 @@ def main():
 
                 plt.show()
 
-    # Make params_list a list of dictionaries with the parameters and the stepsize
+    # Classification cases
     params_list = [
         {"values": np.array((1.5, -0.5, 1.5, 0.5, 1.0)), "stepsize": 1e-3, "max_iters": 3500},  # Vertical ellipse
         {"values": np.array((1.0, 2.0, 1.0, 2.5, 1)), "stepsize": 1e-2, "max_iters": 1500},  # Horizontal ellipse -OK
         {"values": np.array((3.5, 2.0, 1.0, -2.5, 0.5)), "stepsize": 5e-3, "max_iters": 3500},  # Hyperbola
     ]
 
-    dimension = params_list[0]["values"].shape[0]
+    dimension = params_list[0]["values"].shape[0] # dimension of the parameter vector theta
     datasets = []
 
     for params in params_list:
+        #TODO: Uncomment/remove next line
         # npoints = np.random.randint(500, args.max_points)
         npoints = 1000
         dataset = create_labeled_dataset(params["values"], M=npoints)
@@ -108,6 +106,7 @@ def main():
 
         a, b, c, d, e = params["values"]
         real_theta = np.array((a, b, c, d, -(e**2)))
+        #TODO: Uncomment/remove next line
         # initial_theta = real_theta + real_theta * 0.7
         initial_theta = np.random.uniform(-5, 5, size=dimension)
 
@@ -131,6 +130,7 @@ def main():
 
         # Task 1.2
         if 2 not in skipped:
+            # We use .copy() to avoid modifying the initial_theta array since it is used in task 1.3 as well
             theta_hat, costs, gradient_magnitude = centralized_gradient(
                 dataset, initial_theta=initial_theta.copy(), max_iters=args.iters, alpha=1e-2, d=dimension
             )

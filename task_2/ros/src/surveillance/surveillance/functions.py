@@ -7,44 +7,7 @@ emph_O4S = mcolors.to_rgb((0 / 255, 93 / 255, 137 / 255))
 red_O4S = mcolors.to_rgb((127 / 255, 0 / 255, 0 / 255))
 gray_O4S = mcolors.to_rgb((112 / 255, 112 / 255, 112 / 255))
 
-
-def dist_error(XX, NN, n_x, Adj, distances, horizon):
-    TT = len(horizon)
-    err = np.zeros((distances.shape[0], distances.shape[1], TT))
-
-    for tt in range(TT):
-        for ii in range(NN):
-            N_ii = np.where(Adj[:, ii] > 0)[0]
-            index_ii = ii * n_x + np.arange(n_x)
-            XX_ii = XX[index_ii, tt]
-
-            for jj in N_ii:
-                index_jj = jj * n_x + np.arange(n_x)
-                XX_jj = XX[index_jj, tt]
-                norm_ij = np.linalg.norm(XX_ii - XX_jj)
-
-                # relative error
-                err[ii, jj, tt] = distances[ii, jj] - norm_ij
-    return err
-
-
-def error_plot(XX, NN, n_x, Adj, distances, horizon):
-    # Evaluate the distance error
-    err = dist_error(XX, NN, n_x, Adj, distances, horizon)
-    dist_err = np.reshape(err, (NN * NN, np.size(horizon)))
-
-    # generate figure
-    for h in range(NN * NN):
-        plt.plot(horizon, dist_err[h])
-
-    plt.title("Agents distance error [m]")
-    plt.yscale("log")
-    plt.xlabel("$t$")
-    plt.ylabel("$\|x_i^t-x_j^t\|-d_{ij}, i = 1,...,N$")
-    plt.grid()
-
-
-def animation(XX, horizon, Adj, targets):
+def simple_animation(XX, horizon, Adj, targets):
     NN = XX.shape[1]
 
     plt.figure("Animation")
@@ -69,7 +32,6 @@ def animation(XX, horizon, Adj, targets):
                 color=blue_O4S,
             )
 
-        # plot formation
         xx_tt = XX[tt, :, :]
 
         # add thebarycenter as a marker
@@ -83,6 +45,7 @@ def animation(XX, horizon, Adj, targets):
             color=blue_O4S,
         )
 
+        # plot formation
         for ii in range(NN):
             p_prev = xx_tt[ii]
 
@@ -95,6 +58,7 @@ def animation(XX, horizon, Adj, targets):
                 color=red_O4S,
             )
 
+            # plot formation edges
             for jj in range(NN):
                 if Adj[ii, jj] & (jj > ii):
                     p_curr = xx_tt[jj]
@@ -117,13 +81,11 @@ def animation(XX, horizon, Adj, targets):
         plt.pause(0.001)
         plt.clf()
 
-
-def animation2(XX, horizon, Adj, targets, top_wall, bottom_wall, y_offset):
+def corridor_animation(XX, horizon, Adj, targets, top_wall, bottom_wall, y_offset):
     NN = XX.shape[1]
 
     plt.figure(figsize=(20, 20))
     for tt in range(len(horizon)):
-        # plot trajectories
         plt.plot(
             XX[:, :, 0],
             XX[:, :, 1],
@@ -132,6 +94,7 @@ def animation2(XX, horizon, Adj, targets, top_wall, bottom_wall, y_offset):
             alpha=0.5,
         )
 
+        # plot corridor
         plt.plot(
             np.linspace(top_wall["x_start"], top_wall["x_end"], top_wall["res"]),
             np.tile(top_wall["y"], top_wall["res"]),
@@ -184,7 +147,6 @@ def animation2(XX, horizon, Adj, targets, top_wall, bottom_wall, y_offset):
                 color=blue_O4S,
             )
 
-        # plot formation
         xx_tt = XX[tt, :, :]
 
         # add thebarycenter as a marker
@@ -198,6 +160,7 @@ def animation2(XX, horizon, Adj, targets, top_wall, bottom_wall, y_offset):
             color=blue_O4S,
         )
 
+        # plot formation
         for ii in range(NN):
             p_prev = xx_tt[ii]
 
@@ -210,6 +173,7 @@ def animation2(XX, horizon, Adj, targets, top_wall, bottom_wall, y_offset):
                 color=red_O4S,
             )
 
+            # plot formation edges
             for jj in range(NN):
                 if Adj[ii, jj] & (jj > ii):
                     p_curr = xx_tt[jj]
@@ -221,8 +185,7 @@ def animation2(XX, horizon, Adj, targets, top_wall, bottom_wall, y_offset):
                         linestyle="solid",
                     )
 
-        # axes_lim = (np.min(XX) - 1, np.max(XX) + 1)
-        plt.xlim(-50, 50)  # Set the x-axis limits
+        plt.xlim(-50, 50)
         plt.ylim(-50, 50)
         plt.axis("equal")
         plt.xlabel("first component")
@@ -234,4 +197,5 @@ def animation2(XX, horizon, Adj, targets, top_wall, bottom_wall, y_offset):
             plt.pause(0.1)
             plt.clf()
         else:
+            # do not close the plot of the last frame
             plt.show()

@@ -5,7 +5,7 @@ class SurveillanceCost:
     def __init__(self, tradeoff):
         self.tradeoff = tradeoff
 
-    def __call__(self, target, zz, sigma, _):
+    def __call__(self, target, zz, sigma):
         li = self.tradeoff * np.linalg.norm(zz - target) ** 2 + np.linalg.norm(zz - sigma) ** 2
         nabla_1 = 2 * self.tradeoff * (zz - target) + 2 * (zz - sigma)
         nabla_2 = 2 * (zz - sigma)
@@ -15,15 +15,14 @@ class SurveillanceCost:
 
 class CorridorCost:
     def __init__(self, alpha):
+        # alpha represents the importance of reaching the targets vs avoiding the walls
         self.alpha = alpha
-        self.epsilon = 1.0
 
-    def __call__(self, target, zz, sigma, kk):
+    def __call__(self, target, zz, sigma):
         li_target = self.alpha * np.linalg.norm(zz - target) ** 2
         li_sigma = np.linalg.norm(zz - sigma) ** 2
 
-        g_1 = 1e-5 * zz[0] ** 4 + 2 - zz[1]
-        g_2 = 1e-5 * zz[0] ** 4 + 2 + zz[1]
+        g_1, g_2 = -self.constraints(zz)
         li_barrier = -np.log(g_1) + -np.log(g_2)
 
         li = li_target + li_sigma + li_barrier

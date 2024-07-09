@@ -17,7 +17,7 @@ class GradientTracking:
 
         AA = np.zeros(shape=(nn, nn))
 
-        # Metropolis-Hastings algorithm
+        # Metropolis-Hastings weights in order to have a doubly stochastic matrix
         for ii in range(nn):
             N_ii = np.nonzero(Adj[ii])[0]
             deg_ii = len(N_ii)

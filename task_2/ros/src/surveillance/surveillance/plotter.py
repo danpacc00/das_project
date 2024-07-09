@@ -6,7 +6,7 @@ import rclpy
 from message.msg import PlotterData
 from rclpy.node import Node
 
-from surveillance.functions import animation, animation2
+from surveillance.functions import simple_animation, corridor_animation
 
 DEFAULT_TIMER_PERIOD = 2  # seconds
 
@@ -52,6 +52,8 @@ class Plotter(Node):
         grad = msg.grad
         time = msg.time
 
+        # Warden nodes keep sending data even after the simulation has finished
+        # so we need to ignore any data received after the simulation has ended
         if self.finished:
             return
 
@@ -59,6 +61,8 @@ class Plotter(Node):
         self._ss[node_id].append(np.array(ss))
         self._debug(f"Received data from node {node_id} (#{time})")
 
+        # Initial cost and gradient values are meaningless (they are hardcoded as zero, see warden.py code), 
+        # so we ignore them
         if time > 0:
             self._node_costs[node_id].append(cost)
             self._node_grads[node_id].append(np.array(grad))
@@ -66,11 +70,13 @@ class Plotter(Node):
     def _timer_callback(self):
         kk = self._simtime
 
+        # Check if all nodes have sent their data for the current iteration
         all_received = all(len(self._node_costs[node_id]) > self._simtime for node_id in range(self.nodes))
         if not all_received:
             self._debug("Waiting for all neighbors to respond...")
             return
 
+        # Calculate the total cost and gradient magnitude for the current iteration
         self._cost[kk] = sum(self._node_costs[node_id][kk] for node_id in range(self.nodes))
         self._grad[kk] = np.linalg.norm(sum(self._node_grads[node_id][kk] for node_id in range(self.nodes)))
 
@@ -80,10 +86,12 @@ class Plotter(Node):
             self.finished = True
             self._timer.destroy()
 
+            # Convert the lists of lists to numpy arrays
             zz = np.zeros((kk, self.nodes, 2))
             for ii in range(self.nodes):
                 zz[:, ii, :] = np.array(self._zz[ii])[:kk, :]
 
+            # Convert the lists of lists to numpy arrays
             ss = np.zeros((kk, self.nodes, 2))
             for ii in range(self.nodes):
                 ss[:, ii, :] = np.array(self._ss[ii])[:kk, :]
@@ -197,7 +205,7 @@ class Plotter(Node):
         plt.ylim(-60, 60)
         plt.show()
 
-        animation2(
+        corridor_animation(
             zz,
             np.linspace(0, kk, kk),
             self.Adj,
@@ -271,7 +279,7 @@ class Plotter(Node):
 
         plt.show()
 
-        animation(zz, np.linspace(0, kk, kk), self.Adj, self.targets)
+        simple_animation(zz, np.linspace(0, kk, kk), self.Adj, self.targets)
 
     def _debug(self, msg):
         self.get_logger().debug(f"[{self.id}] {msg}")

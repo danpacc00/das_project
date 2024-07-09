@@ -18,6 +18,8 @@ def ellipse_equation(w, bias, x):
     solution: y1/2 = (-b ± sqrt(b^2 - 4(dx(cx+a))) - e^2) / 2d"""
 
     discriminant = b**2 - 4 * d * (c * x**2 + a * x + bias)
+
+    # If the discriminant is negative, we return NaN to avoid errors
     if discriminant < 0:
         return np.nan, np.nan
 
@@ -30,20 +32,20 @@ def ellipse_equation(w, bias, x):
 def create_labeled_dataset(params, M):
     a = params[0]  # Position x
     b = params[1]  # Position y
-    c = params[2]  # Coefficient for x^2. Controls the width of the ellipse
-    d = params[3]  # Coefficient for y^2. Controls the height of the ellipse
-    e = params[4]
+    c = params[2]  # Coefficient for x^2.
+    d = params[3]  # Coefficient for y^2.
+    e = params[4]  # "Radius" of the ellipse
 
-    w = np.array([a, b, c, d])  # Weights
-    bias = -(e**2)  # Bias
+    w = np.array([a, b, c, d])
+    bias = -(e**2)
 
     x_lim = 1.5
     y_lim = 1.5
 
     offset = 1.5
 
-    D_1 = np.random.uniform(-x_lim - offset, x_lim + offset, size=(M, 1))
-    D_2 = np.random.uniform(-y_lim - offset, y_lim + offset, size=(M, 1))
+    D_1 = np.random.uniform(-x_lim - offset, x_lim + offset, size=(M, 1)) # Random x values
+    D_2 = np.random.uniform(-y_lim - offset, y_lim + offset, size=(M, 1)) # Random y values
 
     D = np.concatenate((D_1, D_2), axis=1)
 
@@ -57,7 +59,7 @@ def create_labeled_dataset(params, M):
 
     return labeled_dataset
 
-
+# Logistic regression cost function for the given dataset
 def cost(theta, points):
     w, bias = theta[:4], theta[4]
 
@@ -69,7 +71,7 @@ def cost(theta, points):
 
     return cost
 
-
+# Gradient of the logistic regression cost function for the given dataset
 def cost_gradient(theta, points):
     w, bias = theta[:4], theta[4]
 
@@ -77,6 +79,7 @@ def cost_gradient(theta, points):
         return np.dot(w, phi(x)) + bias
 
     gradient = np.zeros(5)
+    #TODO: Uncomment/remove next lines
     # for i in range(len(points)):
     #     x = points[i, :2]
     #     p = points[i, 2]
@@ -130,6 +133,7 @@ def classification_error(dataset, theta):
         x = dataset[i, :2]
         p = dataset[i, 2]
 
+        # Since the labels are -1 and 1 if the product is negative it means that the point is misclassified
         if p * separating_function(w, bias, x) < 0:
             error += 1
             misclassified.append(x)
