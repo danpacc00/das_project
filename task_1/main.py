@@ -94,7 +94,7 @@ def main():
     params_list = [
         {"values": np.array((1.5, -0.5, 1.5, 0.5, 1.0)), "stepsize": 1e-3, "max_iters": 3500},  # Vertical ellipse
         {"values": np.array((1.0, 2.0, 1.0, 2.5, 1)), "stepsize": 1e-2, "max_iters": 1500},  # Horizontal ellipse -OK
-        {"values": np.array((3.5, 2.0, 1.0, -2.5, 0.5)), "stepsize": 5e-3, "max_iters": 3500},  # Parabola
+        {"values": np.array((3.5, 2.0, 1.0, -2.5, 0.5)), "stepsize": 5e-3, "max_iters": 3500},  # Hyperbola
     ]
 
     dimension = params_list[0]["values"].shape[0]
