@@ -30,6 +30,7 @@ class CorridorCost:
         nabla_1 = 2 * self.alpha * (zz - target) + 2 * (zz - sigma)
         nabla_1 += np.array([-1e-5 * 4 * zz[0] ** 3, 1]) / g_1
         nabla_1 += np.array([-1e-5 * 4 * zz[0] ** 3, -1]) / g_2
+
         nabla_2 = 2 * (zz - sigma)
 
         return li, nabla_1, nabla_2

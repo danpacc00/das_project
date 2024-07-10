@@ -40,8 +40,10 @@ class AggregativeTracking:
             ss[0, ii, :] = self.phi_fn(zz[0, ii, :])[0]
             vv[0, ii, :] = self.cost_fn(targets[ii], zz[0, ii, :], ss[0, ii, :])[2]
 
+        self.l_nabla_2 = np.zeros((self.max_iters, d))
+
         for kk in range(self.max_iters - 1):
-            grad = np.zeros((d, d))
+            grad = np.zeros((2 * d))
 
             for ii in range(nn):
                 N_ii = np.nonzero(Adj[ii])[0]
@@ -53,6 +55,7 @@ class AggregativeTracking:
 
                 target = targets[ii]
                 li_nabla_1 = self.cost_fn(target, zz[kk, ii, :], ss[kk, ii, :])[1]
+
                 _, phi_grad = self.phi_fn(zz[kk, ii, :])
 
                 if "constraints" in dir(self.cost_fn):
@@ -73,8 +76,13 @@ class AggregativeTracking:
                 )
 
                 cost, li_nabla_1, li_nabla_2 = self.cost_fn(target, zz[kk + 1, ii, :], ss[kk + 1, ii, :])
-                grad += li_nabla_1 + li_nabla_2 #TODO: fix this
+                # grad += li_nabla_1 + li_nabla_2  # TODO: fix this
+                grad[:d] += li_nabla_1
+                grad[d:] += li_nabla_2
+
                 self.cost[kk] += cost
+
+                self.l_nabla_2[kk] += li_nabla_2
 
             self.gradient_magnitude[kk] += np.linalg.norm(grad)
 
@@ -82,5 +90,9 @@ class AggregativeTracking:
             if self.gradient_magnitude[kk] < 1e-6:
                 print(f"Converged at iteration {kk}")
                 break
+        # Evaluate the difference between vv and l_nabla_2
+        v_nabla2_diff = np.zeros((self.max_iters, nn))
+        for ii in range(nn):
+            v_nabla2_diff[:, ii] = np.linalg.norm(vv[:, ii, :] - self.l_nabla_2, axis=1)
 
-        return zz[:kk, :, :], ss[:kk, :, :], self.cost[:kk], self.gradient_magnitude[:kk], kk
+        return zz[:kk, :, :], ss[:kk, :, :], self.cost[:kk], self.gradient_magnitude[:kk], v_nabla2_diff[:kk]

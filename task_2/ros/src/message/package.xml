@@ -3,7 +3,7 @@
 <package format="3">
   <name>message</name>
   <version>0.0.0</version>
-  <description>TODO: Package description</description>
+  <description>Implements message types for commmunication on aggregative optimization</description>
   <maintainer email="mattia.guazzaloca@gmail.com">mettz</maintainer>
   <license>MIT</license>
 

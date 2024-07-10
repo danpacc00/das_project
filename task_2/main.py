@@ -45,7 +45,6 @@ def main():
         tradeoff_list = [1.0, 0.1, 10.0]
 
         for case, init_targets in enumerate(init_targets_list):
-
             # For each case, we will try different tradeoff values
             for tradeoff in tradeoff_list:
                 zz_init, targets = init_targets
@@ -178,12 +177,26 @@ def main():
             # Define the barrier functions used to avoid collisions with the corridor walls
             g_1 = 1e-5 * x**4 + 2
             g_2 = -(1e-5 * x**4 + 2)
-            
+
             cost = CorridorCost(alpha=0.8)
             algo = AggregativeTracking(cost, phi.Identity(), max_iters=args.iters, alpha=1e-3)
 
             graph = nx.path_graph(args.nodes)
-            zz, ss, cost, gradient_magnitude, kk = algo.run(graph, initial_poses_list[i], targets, d=2)
+            zz, ss, cost, gradient_magnitude, v_nabla2_diff = algo.run(graph, initial_poses_list[i], targets, d=2)
+
+            print("zz shape: ", zz.shape)
+            print("ss shape: ", ss.shape)
+
+            barycenter = np.zeros((zz.shape[0], 2))
+
+            for i in range(zz.shape[0]):
+                barycenter[i, 0] = np.mean(zz[i, :, 0])  # Mean of x coordinates
+                barycenter[i, 1] = np.mean(zz[i, :, 1])  # Mean of y coordinates
+
+            diff_barycenter_s = np.zeros((ss.shape[0], args.nodes))
+
+            for ii in range(args.nodes):
+                diff_barycenter_s[:, ii] = np.linalg.norm(ss[:, ii, :] - barycenter, axis=1)
 
             if not args.no_plots:
                 _, ax = plt.subplots(1, 2, figsize=(10, 10))
@@ -195,6 +208,18 @@ def main():
                 ax[1].grid()
                 ax[1].set_title("$s_y$")
                 plt.suptitle("Barycenter estimation (obstacles case)")
+                plt.show()
+
+                _, ax = plt.subplots(1, 2, figsize=(10, 10))
+                # Plot difference between barycenter and s in log scale
+                ax[0].semilogy(np.arange(diff_barycenter_s.shape[0]), diff_barycenter_s)
+                ax[0].grid()
+                ax[0].set_title("Difference between barycenter and s (estimation of the batycenter)")
+
+                ax[1].semilogy(np.arange(v_nabla2_diff.shape[0]), v_nabla2_diff)
+                ax[1].grid()
+                ax[1].set_title("Difference between nabla_2 of the cost and vv (estimation)")
+                plt.suptitle("Convergence")
                 plt.show()
 
                 _, ax = plt.subplots(1, 2, figsize=(10, 10))
@@ -274,7 +299,7 @@ def main():
 
                     plt.title("Agents trajectories")
 
-                    # Plot the barrier functions (they are "inside" the corridor since they are used to 
+                    # Plot the barrier functions (they are "inside" the corridor since they are used to
                     # keep the agents away from the walls while they are moving inside the corridor)
                     plt.plot(x, g_1, color="green", linestyle="dashed")
                     plt.plot(x, g_2, color="green", linestyle="dashed")
@@ -285,7 +310,7 @@ def main():
             if not args.skip_animations:
                 corridor_animation(
                     zz,
-                    np.linspace(0, kk, kk),
+                    np.linspace(0, zz.shape[0] - 1, zz.shape[0] - 1),
                     nx.adjacency_matrix(graph).toarray(),
                     targets_list[i],
                     top_wall,

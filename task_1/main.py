@@ -12,6 +12,7 @@ from gradient_tracking import GradientTracking
 signal.signal(signal.SIGINT, signal.SIG_DFL)
 # np.random.seed(0)
 
+
 def main():
     argparser = argparse.ArgumentParser()
     argparser.add_argument("-n", "--nodes", type=int, default=10)
@@ -94,20 +95,17 @@ def main():
         {"values": np.array((3.5, 2.0, 1.0, -2.5, 0.5)), "stepsize": 5e-3, "max_iters": 3500},  # Hyperbola
     ]
 
-    dimension = params_list[0]["values"].shape[0] # dimension of the parameter vector theta
+    dimension = params_list[0]["values"].shape[0]  # dimension of the parameter vector theta
     datasets = []
 
     for params in params_list:
-        #TODO: Uncomment/remove next line
-        # npoints = np.random.randint(500, args.max_points)
-        npoints = 1000
+        npoints = np.random.randint(500, args.max_points)
         dataset = create_labeled_dataset(params["values"], M=npoints)
         datasets.append(dataset)
 
         a, b, c, d, e = params["values"]
         real_theta = np.array((a, b, c, d, -(e**2)))
-        #TODO: Uncomment/remove next line
-        # initial_theta = real_theta + real_theta * 0.7
+
         initial_theta = np.random.uniform(-5, 5, size=dimension)
 
         label = f"Real Separating Function (${a}x+{b}y+{c}x^2+{d}y^2={e}^2$)"
