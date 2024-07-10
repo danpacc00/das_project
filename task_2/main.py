@@ -1,16 +1,16 @@
 import argparse
 import signal
 
-import matplotlib.pyplot as plt
 import networkx as nx
 import numpy as np
 import ros.src.surveillance.surveillance.phi as phi
+import ros.src.surveillance.surveillance.plot as plot
 from ros.src.surveillance.surveillance.aggregative_tracking import AggregativeTracking
 from ros.src.surveillance.surveillance.costs_fn import (
     CorridorCost,
     SurveillanceCost,
 )
-from ros.src.surveillance.surveillance.functions import simple_animation, corridor_animation
+from ros.src.surveillance.surveillance.functions import corridor_animation, simple_animation
 
 signal.signal(signal.SIGINT, signal.SIG_DFL)
 np.random.seed(0)
@@ -53,78 +53,26 @@ def main():
                 algo = AggregativeTracking(cost, phi.Identity(), max_iters=args.iters, alpha=1e-2)
 
                 graph = nx.path_graph(args.nodes)
-                zz, ss, cost, gradient_magnitude, kk = algo.run(graph, zz_init, targets, d=2)
+                zz, ss, cost, gradient_magnitude, diff_barycenter_s, v_nabla2_diff = algo.run(
+                    graph, zz_init, targets, d=2
+                )
 
                 if not args.no_plots:
-                    _, ax = plt.subplots(1, 2, figsize=(10, 10))
-                    ax[0].semilogx(np.arange(ss.shape[0]), ss[:, :, 0])
-                    ax[0].grid()
-                    ax[0].set_title("$s_x$")
+                    plot.ss_estimates(ss)
 
-                    ax[1].semilogx(np.arange(ss.shape[0]), ss[:, :, 1])
-                    ax[1].grid()
-                    ax[1].set_title("$s_y$")
-                    plt.suptitle(f"Barycenter estimation with tradeoff = {tradeoff}")
-                    plt.show()
+                    plot.convergence(diff_barycenter_s, v_nabla2_diff)
 
-                    _, ax = plt.subplots(1, 2, figsize=(10, 10))
-                    ax[0].semilogy(np.arange(zz.shape[0] - 1), cost[:-1])
-                    ax[0].grid()
-                    ax[0].set_title("Cost")
+                    plot.cost_gradient(cost, gradient_magnitude, title_suffix=f"($\\gamma = {tradeoff}$)")
 
-                    ax[1].semilogy(np.arange(zz.shape[0] - 1), gradient_magnitude[1:])
-                    ax[1].grid()
-                    ax[1].set_title("Gradient magnitude")
-                    plt.suptitle(f"Aggregative tracking with tradeoff = {tradeoff}")
-                    plt.show()
-
-                    for jj in range(args.nodes):
-                        plt.plot(
-                            zz[:, jj, 0],
-                            zz[:, jj, 1],
-                            linewidth=1,
-                            color="black",
-                            linestyle="dashed",
-                            label=f"Trajectory {jj}",
-                        )
-
-                        # Plot the final position of the agent
-                        plt.scatter(zz[-1, jj, 0], zz[-1, jj, 1], color="orange", marker="x")
-
-                        # Annotate the initial position of the agent
-                        plt.annotate(
-                            f"$z_{jj}^0$",
-                            xy=(zz[0, jj, 0], zz[0, jj, 1]),
-                            xytext=(zz[0, jj, 0] + 0.2, zz[0, jj, 1] + 0.2),
-                            fontsize=12,
-                            bbox=dict(boxstyle="round,pad=0.2", facecolor="white", edgecolor="red"),
-                        )
-
-                        plt.plot(targets[:, 0], targets[:, 1], "bx")
-                        plt.plot(zz_init[:, 0], zz_init[:, 1], "ro")
-
-                        if case == 0:
-                            label_offsets = [(0.2, 0.2), (-0.2, -0.7), (-0.8, -0.7), (0.2, -0.2)]
-                        else:
-                            label_offsets = [(0.1, 0.2), (0.1, 0.2), (-0.55, -0.35), (-0.55, -0.35)]
-
-                        # Annotate the target position
-                        plt.annotate(
-                            f"Target {jj}",
-                            xy=(targets[jj, 0], targets[jj, 1]),
-                            xytext=(targets[jj, 0] + label_offsets[jj][0], targets[jj, 1] + label_offsets[jj][1]),
-                            fontsize=12,
-                            bbox=dict(boxstyle="round,pad=0.2", facecolor="white", edgecolor="blue"),
-                        )
-
-                        plt.title(f"Agents trajectories (tradeoff = {tradeoff})")
-
-                        print(f"Final distance from target node {jj}: ", np.linalg.norm(zz[-1, jj] - targets))
-
-                    plt.show()
+                    plot.trajectories(zz, targets, zz_init, case, tradeoff)
 
                 if not args.skip_animations:
-                    simple_animation(zz, np.linspace(0, kk, kk), nx.adjacency_matrix(graph).toarray(), targets)
+                    simple_animation(
+                        zz,
+                        np.linspace(0, zz.shape[0] - 1, zz.shape[0] - 1),
+                        nx.adjacency_matrix(graph).toarray(),
+                        targets,
+                    )
 
     # Task 2.3 (Python version)
     if 3 not in skipped:
@@ -178,136 +126,31 @@ def main():
             g_1 = 1e-5 * x**4 + 2
             g_2 = -(1e-5 * x**4 + 2)
 
-            cost = CorridorCost(alpha=0.8)
+            alpha = 0.8
+            cost = CorridorCost(alpha)
             algo = AggregativeTracking(cost, phi.Identity(), max_iters=args.iters, alpha=1e-3)
 
             graph = nx.path_graph(args.nodes)
-            zz, ss, cost, gradient_magnitude, v_nabla2_diff = algo.run(graph, initial_poses_list[i], targets, d=2)
-
-            print("zz shape: ", zz.shape)
-            print("ss shape: ", ss.shape)
-
-            barycenter = np.zeros((zz.shape[0], 2))
-
-            for i in range(zz.shape[0]):
-                barycenter[i, 0] = np.mean(zz[i, :, 0])  # Mean of x coordinates
-                barycenter[i, 1] = np.mean(zz[i, :, 1])  # Mean of y coordinates
-
-            diff_barycenter_s = np.zeros((ss.shape[0], args.nodes))
-
-            for ii in range(args.nodes):
-                diff_barycenter_s[:, ii] = np.linalg.norm(ss[:, ii, :] - barycenter, axis=1)
+            zz, ss, cost, gradient_magnitude, diff_barycenter_s, v_nabla2_diff = algo.run(
+                graph, initial_poses_list[i], targets, d=2
+            )
 
             if not args.no_plots:
-                _, ax = plt.subplots(1, 2, figsize=(10, 10))
-                ax[0].semilogx(np.arange(ss.shape[0]), ss[:, :, 0])
-                ax[0].grid()
-                ax[0].set_title("$s_x$")
+                plot.ss_estimates(ss)
 
-                ax[1].semilogx(np.arange(ss.shape[0]), ss[:, :, 1])
-                ax[1].grid()
-                ax[1].set_title("$s_y$")
-                plt.suptitle("Barycenter estimation (obstacles case)")
-                plt.show()
+                plot.convergence(diff_barycenter_s, v_nabla2_diff)
 
-                _, ax = plt.subplots(1, 2, figsize=(10, 10))
-                # Plot difference between barycenter and s in log scale
-                ax[0].semilogy(np.arange(diff_barycenter_s.shape[0]), diff_barycenter_s)
-                ax[0].grid()
-                ax[0].set_title("Difference between barycenter and s (estimation of the batycenter)")
+                plot.cost_gradient(cost, gradient_magnitude, title_suffix="($\\alpha = 0.8$)")
 
-                ax[1].semilogy(np.arange(v_nabla2_diff.shape[0]), v_nabla2_diff)
-                ax[1].grid()
-                ax[1].set_title("Difference between nabla_2 of the cost and vv (estimation)")
-                plt.suptitle("Convergence")
-                plt.show()
+                plot.trajectories(
+                    zz,
+                    targets,
+                    initial_poses_list[i],
+                    i,
+                    alpha,
+                    additional_elements=[lambda: plot.corridor(top_wall, bottom_wall, y_offset, x, g_1, g_2)],
+                )
 
-                _, ax = plt.subplots(1, 2, figsize=(10, 10))
-                ax[0].semilogy(np.arange(zz.shape[0] - 1), cost[:-1])
-                ax[0].grid()
-                ax[0].set_title("Cost")
-
-                ax[1].semilogy(np.arange(zz.shape[0] - 1), gradient_magnitude[1:])
-                ax[1].grid()
-                ax[1].set_title("Gradient magnitude")
-                plt.suptitle("Aggregative tracking (obstacles case)")
-                plt.show()
-
-                for jj in range(args.nodes):
-                    plt.plot(
-                        zz[:, jj, 0],
-                        zz[:, jj, 1],
-                        linewidth=1,
-                        color="black",
-                        linestyle="dashed",
-                        label=f"Trajectory {jj}",
-                    )
-
-                    # Plot the final position of the agents
-                    plt.scatter(zz[-1, jj, 0], zz[-1, jj, 1], color="orange", label=f"Final position {jj}", marker="x")
-
-                    plt.annotate(
-                        f"$z_{jj}^0$",
-                        xy=(zz[0, jj, 0], zz[0, jj, 1]),
-                        xytext=(zz[0, jj, 0] - 2.0, zz[0, jj, 1] + 3.5),
-                        fontsize=12,
-                        bbox=dict(boxstyle="round,pad=0.2", facecolor="white", edgecolor="red"),
-                    )
-
-                    plt.plot(targets[:, 0], targets[:, 1], "bx")
-                    plt.plot(initial_poses_list[i][:, 0], initial_poses_list[i][:, 1], "ro")
-
-                    # Plot the corridor walls
-                    plt.plot(
-                        np.linspace(top_wall["x_start"], top_wall["x_end"], top_wall["res"]),
-                        np.tile(top_wall["y"], top_wall["res"]),
-                        "k",
-                    )
-                    plt.plot(
-                        np.linspace(bottom_wall["x_start"], bottom_wall["x_end"], bottom_wall["res"]),
-                        np.tile(bottom_wall["y"], bottom_wall["res"]),
-                        "k",
-                    )
-                    plt.plot(
-                        np.tile(top_wall["x_start"], top_wall["res"]),
-                        np.linspace(top_wall["y"], top_wall["y"] + y_offset * 4, top_wall["res"]),
-                        "k",
-                    )
-                    plt.plot(
-                        np.tile(bottom_wall["x_start"], bottom_wall["res"]),
-                        np.linspace(bottom_wall["y"], bottom_wall["y"] - y_offset * 4, bottom_wall["res"]),
-                        "k",
-                    )
-                    plt.plot(
-                        np.tile(top_wall["x_end"], top_wall["res"]),
-                        np.linspace(top_wall["y"], top_wall["y"] + y_offset * 4, top_wall["res"]),
-                        "k",
-                    )
-                    plt.plot(
-                        np.tile(bottom_wall["x_end"], bottom_wall["res"]),
-                        np.linspace(bottom_wall["y"], bottom_wall["y"] - y_offset * 4, bottom_wall["res"]),
-                        "k",
-                    )
-
-                    plt.annotate(
-                        f"Target {jj}",
-                        xy=(targets[jj, 0], targets[jj, 1]),
-                        xytext=(targets[jj, 0] + 3.5, targets[jj, 1] + 2.5),
-                        fontsize=12,
-                        bbox=dict(boxstyle="round,pad=0.2", facecolor="white", edgecolor="blue"),
-                    )
-
-                    plt.title("Agents trajectories")
-
-                    # Plot the barrier functions (they are "inside" the corridor since they are used to
-                    # keep the agents away from the walls while they are moving inside the corridor)
-                    plt.plot(x, g_1, color="green", linestyle="dashed")
-                    plt.plot(x, g_2, color="green", linestyle="dashed")
-
-                plt.ylim(-60, 60)
-                plt.show()
-
-            if not args.skip_animations:
                 corridor_animation(
                     zz,
                     np.linspace(0, zz.shape[0] - 1, zz.shape[0] - 1),

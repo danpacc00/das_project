@@ -1,12 +1,12 @@
 import sys
 
-import matplotlib.pyplot as plt
 import numpy as np
 import rclpy
 from message.msg import PlotterData
 from rclpy.node import Node
 
-from surveillance.functions import simple_animation, corridor_animation
+import surveillance.plot as plot
+from surveillance.functions import corridor_animation, simple_animation
 
 DEFAULT_TIMER_PERIOD = 2  # seconds
 
@@ -38,18 +38,23 @@ class Plotter(Node):
         self._simtime = 0
         self._node_costs = {ii: [] for ii in range(self.nodes)}
         self._node_grads = {ii: [] for ii in range(self.nodes)}
+        self._node_nabla_2 = {ii: [] for ii in range(self.nodes)}
         self._zz = {ii: [] for ii in range(self.nodes)}
         self._ss = {ii: [] for ii in range(self.nodes)}
+        self._vv = {ii: [] for ii in range(self.nodes)}
 
         self._cost = np.zeros(self.max_iters)
         self._grad = np.zeros(self.max_iters)
+        self._total_nabla_2 = np.zeros((self.max_iters, 2))
 
     def _node_callback(self, msg):
         node_id = msg.warden_id
         zz = msg.zz
         ss = msg.ss
+        vv = msg.vv
         cost = msg.cost
         grad = msg.grad
+        nabla_2 = msg.nabla_2
         time = msg.time
 
         # Warden nodes keep sending data even after the simulation has finished
@@ -59,13 +64,15 @@ class Plotter(Node):
 
         self._zz[node_id].append(np.array(zz))
         self._ss[node_id].append(np.array(ss))
+        self._vv[node_id].append(np.array(vv))
         self._debug(f"Received data from node {node_id} (#{time})")
 
-        # Initial cost and gradient values are meaningless (they are hardcoded as zero, see warden.py code), 
+        # Initial cost and gradient values are meaningless (they are hardcoded as zero, see warden.py code),
         # so we ignore them
         if time > 0:
             self._node_costs[node_id].append(cost)
             self._node_grads[node_id].append(np.array(grad))
+            self._node_nabla_2[node_id].append(np.array(nabla_2))
 
     def _timer_callback(self):
         kk = self._simtime
@@ -79,6 +86,7 @@ class Plotter(Node):
         # Calculate the total cost and gradient magnitude for the current iteration
         self._cost[kk] = sum(self._node_costs[node_id][kk] for node_id in range(self.nodes))
         self._grad[kk] = np.linalg.norm(sum(self._node_grads[node_id][kk] for node_id in range(self.nodes)))
+        self._total_nabla_2[kk] = np.linalg.norm(sum(self._node_nabla_2[node_id][kk] for node_id in range(self.nodes)))
 
         self._info(f"Iteration: #{kk}, Cost: {self._cost[kk]:.2f}, Gradient Magnitude: {self._grad[kk]:.2f}")
 
@@ -96,14 +104,19 @@ class Plotter(Node):
             for ii in range(self.nodes):
                 ss[:, ii, :] = np.array(self._ss[ii])[:kk, :]
 
+            # Convert the lists of lists to numpy arrays
+            vv = np.zeros((kk, self.nodes, 2))
+            for ii in range(self.nodes):
+                vv[:, ii, :] = np.array(self._vv[ii])[:kk, :]
+
             if self.cost_type == "surveillance":
-                self._surveillance_plots(ss, zz, kk)
+                self._surveillance_plots(ss, vv, zz, kk)
             else:
-                self._corridor_plots(ss, zz, kk)
+                self._corridor_plots(ss, vv, zz, kk)
 
         self._simtime += 1
 
-    def _corridor_plots(self, ss, zz, kk):
+    def _corridor_plots(self, ss, vv, zz, kk):
         top_wall = {"x_start": -15, "x_end": 15, "y": 5, "res": 1000}
         bottom_wall = {"x_start": -15, "x_end": 15, "y": -5, "res": 1000}
         y_offset = 20
@@ -112,98 +125,31 @@ class Plotter(Node):
         g_1 = 1e-5 * x**4 + 2
         g_2 = -(1e-5 * x**4 + 2)
 
-        _, ax = plt.subplots(1, 2, figsize=(10, 10))
-        ax[0].semilogx(np.arange(ss.shape[0]), ss[:, :, 0])
-        ax[0].grid()
-        ax[0].set_title("$s_x$")
+        barycenter = np.zeros((zz.shape[0], 2))
+        for i in range(kk):
+            barycenter[i, 0] = np.mean(zz[i, :, 0])  # Mean of x coordinates
+            barycenter[i, 1] = np.mean(zz[i, :, 1])  # Mean of y coordinates
 
-        ax[1].semilogx(np.arange(ss.shape[0]), ss[:, :, 1])
-        ax[1].grid()
-        ax[1].set_title("$s_y$")
-        plt.suptitle("Barycenter estimation (obstacles case)")
-        plt.show()
+        diff_barycenter_s = np.zeros((ss.shape[0], self.nodes))
+        v_nabla2_diff = np.zeros((vv.shape[0], self.nodes))
+        for ii in range(self.nodes):
+            diff_barycenter_s[:, ii] = np.linalg.norm(ss[:, ii, :] - barycenter, axis=1)
+            v_nabla2_diff[:, ii] = np.linalg.norm(vv[:, ii, :] - self._total_nabla_2[:kk], axis=1)
 
-        _, ax = plt.subplots(1, 2, figsize=(10, 10))
-        ax[0].semilogy(np.arange(zz.shape[0] - 1), self._cost[: kk - 1])
-        ax[0].grid()
-        ax[0].set_title("Cost")
+        plot.ss_estimates(ss)
 
-        ax[1].semilogy(np.arange(zz.shape[0] - 1), self._grad[1:kk])
-        ax[1].grid()
-        ax[1].set_title("Gradient magnitude")
-        plt.suptitle(f"Aggregative tracking with tradeoff = {self.tradeoff}")
-        plt.show()
+        plot.convergence(diff_barycenter_s, v_nabla2_diff)
 
-        # plot trajectories
-        for jj in range(self.nodes):
-            plt.plot(
-                zz[:, jj, 0],
-                zz[:, jj, 1],
-                linewidth=1,
-                color="black",
-                linestyle="dashed",
-                label=f"Trajectory {jj}",
-            )
+        plot.cost_gradient(self._cost[: kk - 1], self._grad[1:kk], title_suffix=f"($\\gamma = {self.tradeoff}$)")
 
-            plt.scatter(zz[-1, jj, 0], zz[-1, jj, 1], color="orange", label=f"Final position {jj}", marker="x")
-
-            plt.annotate(
-                f"$z_{jj}^0$",
-                xy=(zz[0, jj, 0], zz[0, jj, 1]),
-                xytext=(zz[0, jj, 0] - 2.0, zz[0, jj, 1] + 3.5),
-                fontsize=12,
-                bbox=dict(boxstyle="round,pad=0.2", facecolor="white", edgecolor="red"),
-            )
-
-            plt.plot(self.targets[:, 0], self.targets[:, 1], "bx")
-            plt.plot(self.zz_init[:, 0], self.zz_init[:, 1], "ro")
-
-            plt.plot(
-                np.linspace(top_wall["x_start"], top_wall["x_end"], top_wall["res"]),
-                np.tile(top_wall["y"], top_wall["res"]),
-                "k",
-            )
-            plt.plot(
-                np.linspace(bottom_wall["x_start"], bottom_wall["x_end"], bottom_wall["res"]),
-                np.tile(bottom_wall["y"], bottom_wall["res"]),
-                "k",
-            )
-            plt.plot(
-                np.tile(top_wall["x_start"], top_wall["res"]),
-                np.linspace(top_wall["y"], top_wall["y"] + y_offset * 4, top_wall["res"]),
-                "k",
-            )
-            plt.plot(
-                np.tile(bottom_wall["x_start"], bottom_wall["res"]),
-                np.linspace(bottom_wall["y"], bottom_wall["y"] - y_offset * 4, bottom_wall["res"]),
-                "k",
-            )
-            plt.plot(
-                np.tile(top_wall["x_end"], top_wall["res"]),
-                np.linspace(top_wall["y"], top_wall["y"] + y_offset * 4, top_wall["res"]),
-                "k",
-            )
-            plt.plot(
-                np.tile(bottom_wall["x_end"], bottom_wall["res"]),
-                np.linspace(bottom_wall["y"], bottom_wall["y"] - y_offset * 4, bottom_wall["res"]),
-                "k",
-            )
-
-            plt.annotate(
-                f"Target {jj}",
-                xy=(self.targets[jj, 0], self.targets[jj, 1]),
-                xytext=(self.targets[jj, 0] + 3.5, self.targets[jj, 1] + 2.5),
-                fontsize=12,
-                bbox=dict(boxstyle="round,pad=0.2", facecolor="white", edgecolor="blue"),
-            )
-
-            plt.title("Agents trajectories")
-
-            plt.plot(x, g_1, color="green", linestyle="dashed")
-            plt.plot(x, g_2, color="green", linestyle="dashed")
-
-        plt.ylim(-60, 60)
-        plt.show()
+        plot.trajectories(
+            zz,
+            self.targets,
+            self.zz_init,
+            0,
+            self.tradeoff,
+            additional_elements=[lambda: plot.corridor(top_wall, bottom_wall, y_offset, x, g_1, g_2)],
+        )
 
         corridor_animation(
             zz,
@@ -215,69 +161,25 @@ class Plotter(Node):
             y_offset,
         )
 
-    def _surveillance_plots(self, ss, zz, kk):
-        _, ax = plt.subplots(1, 2, figsize=(10, 10))
-        ax[0].semilogx(np.arange(ss.shape[0]), ss[:, :, 0])
-        ax[0].grid()
-        ax[0].set_title("$s_x$")
+    def _surveillance_plots(self, ss, vv, zz, kk):
+        barycenter = np.zeros((zz.shape[0], 2))
+        for i in range(kk):
+            barycenter[i, 0] = np.mean(zz[i, :, 0])  # Mean of x coordinates
+            barycenter[i, 1] = np.mean(zz[i, :, 1])  # Mean of y coordinates
 
-        ax[1].semilogx(np.arange(ss.shape[0]), ss[:, :, 1])
-        ax[1].grid()
-        ax[1].set_title("$s_y$")
-        plt.suptitle(f"Barycenter estimation with tradeoff = {self.tradeoff}")
-        plt.show()
+        diff_barycenter_s = np.zeros((ss.shape[0], self.nodes))
+        v_nabla2_diff = np.zeros((vv.shape[0], self.nodes))
+        for ii in range(self.nodes):
+            diff_barycenter_s[:, ii] = np.linalg.norm(ss[:, ii, :] - barycenter, axis=1)
+            v_nabla2_diff[:, ii] = np.linalg.norm(vv[:, ii, :] - self._total_nabla_2[:kk], axis=1)
 
-        _, ax = plt.subplots(1, 2, figsize=(10, 10))
-        ax[0].semilogy(np.arange(zz.shape[0] - 1), self._cost[: kk - 1])
-        ax[0].grid()
-        ax[0].set_title("Cost")
+        plot.ss_estimates(ss)
 
-        ax[1].semilogy(np.arange(zz.shape[0] - 1), self._grad[1:kk])
-        ax[1].grid()
-        ax[1].set_title("Gradient magnitude")
-        plt.suptitle(f"Aggregative tracking with tradeoff = {self.tradeoff}")
-        plt.show()
+        plot.convergence(diff_barycenter_s, v_nabla2_diff)
 
-        # plot trajectories
-        for jj in range(self.nodes):
-            plt.plot(
-                zz[:, jj, 0],
-                zz[:, jj, 1],
-                linewidth=1,
-                color="black",
-                linestyle="dashed",
-                label=f"Trajectory {jj}",
-            )
+        plot.cost_gradient(self._cost[: kk - 1], self._grad[1:kk], title_suffix=f"($\\gamma = {self.tradeoff}$)")
 
-            plt.scatter(zz[-1, jj, 0], zz[-1, jj, 1], color="orange", marker="x")
-
-            plt.annotate(
-                f"$z_{jj}^0$",
-                xy=(zz[0, jj, 0], zz[0, jj, 1]),
-                xytext=(zz[0, jj, 0] + 0.2, zz[0, jj, 1] + 0.2),
-                fontsize=12,
-                bbox=dict(boxstyle="round,pad=0.2", facecolor="white", edgecolor="red"),
-            )
-
-            plt.plot(self.targets[:, 0], self.targets[:, 1], "bx")
-            plt.plot(self.zz_init[:, 0], self.zz_init[:, 1], "ro")
-
-            if self.tradeoff == 10.0:
-                label_offsets = [(0.2, 0.2), (-0.2, -0.7), (-0.8, -0.7), (0.2, -0.2)]
-            else:
-                label_offsets = [(0.1, 0.2), (0.1, 0.2), (-0.55, -0.35), (-0.55, -0.35)]
-
-            plt.annotate(
-                f"Target {jj}",
-                xy=(self.targets[jj, 0], self.targets[jj, 1]),
-                xytext=(self.targets[jj, 0] + label_offsets[jj][0], self.targets[jj, 1] + label_offsets[jj][1]),
-                fontsize=12,
-                bbox=dict(boxstyle="round,pad=0.2", facecolor="white", edgecolor="blue"),
-            )
-
-            plt.title(f"Agents trajectories (tradeoff = {self.tradeoff})")
-
-        plt.show()
+        plot.trajectories(zz, self.targets, self.zz_init, 0, self.tradeoff)
 
         simple_animation(zz, np.linspace(0, kk, kk), self.Adj, self.targets)
 

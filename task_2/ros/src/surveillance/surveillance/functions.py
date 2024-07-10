@@ -7,6 +7,7 @@ emph_O4S = mcolors.to_rgb((0 / 255, 93 / 255, 137 / 255))
 red_O4S = mcolors.to_rgb((127 / 255, 0 / 255, 0 / 255))
 gray_O4S = mcolors.to_rgb((112 / 255, 112 / 255, 112 / 255))
 
+
 def simple_animation(XX, horizon, Adj, targets):
     NN = XX.shape[1]
 
@@ -80,6 +81,7 @@ def simple_animation(XX, horizon, Adj, targets):
         plt.show(block=False)
         plt.pause(0.001)
         plt.clf()
+
 
 def corridor_animation(XX, horizon, Adj, targets, top_wall, bottom_wall, y_offset):
     NN = XX.shape[1]
@@ -185,8 +187,7 @@ def corridor_animation(XX, horizon, Adj, targets, top_wall, bottom_wall, y_offse
                         linestyle="solid",
                     )
 
-        plt.xlim(-50, 50)
-        plt.ylim(-50, 50)
+        plt.ylim(-60, 60)
         plt.axis("equal")
         plt.xlabel("first component")
         plt.ylabel("second component")

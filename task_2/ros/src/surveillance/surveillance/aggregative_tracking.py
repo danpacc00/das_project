@@ -33,6 +33,8 @@ class AggregativeTracking:
         for ii in range(nn):
             zz[0, ii, :] = initial_poses[ii]
 
+        barycenter = np.zeros((zz.shape[0], 2))
+
         ss = np.zeros((self.max_iters, nn, d))
         vv = np.zeros((self.max_iters, nn, d))
 
@@ -76,13 +78,14 @@ class AggregativeTracking:
                 )
 
                 cost, li_nabla_1, li_nabla_2 = self.cost_fn(target, zz[kk + 1, ii, :], ss[kk + 1, ii, :])
-                # grad += li_nabla_1 + li_nabla_2  # TODO: fix this
                 grad[:d] += li_nabla_1
                 grad[d:] += li_nabla_2
 
                 self.cost[kk] += cost
-
                 self.l_nabla_2[kk] += li_nabla_2
+
+            barycenter[kk, 0] = np.mean(zz[kk, :, 0])  # Mean of x coordinates
+            barycenter[kk, 1] = np.mean(zz[kk, :, 1])  # Mean of y coordinates
 
             self.gradient_magnitude[kk] += np.linalg.norm(grad)
 
@@ -90,9 +93,20 @@ class AggregativeTracking:
             if self.gradient_magnitude[kk] < 1e-6:
                 print(f"Converged at iteration {kk}")
                 break
+
+        diff_barycenter_s = np.zeros((ss.shape[0], nn))
+
         # Evaluate the difference between vv and l_nabla_2
         v_nabla2_diff = np.zeros((self.max_iters, nn))
         for ii in range(nn):
+            diff_barycenter_s[:, ii] = np.linalg.norm(ss[:, ii, :] - barycenter, axis=1)
             v_nabla2_diff[:, ii] = np.linalg.norm(vv[:, ii, :] - self.l_nabla_2, axis=1)
 
-        return zz[:kk, :, :], ss[:kk, :, :], self.cost[:kk], self.gradient_magnitude[:kk], v_nabla2_diff[:kk]
+        return (
+            zz[:kk, :, :],
+            ss[:kk, :, :],
+            self.cost[:kk],
+            self.gradient_magnitude[:kk],
+            diff_barycenter_s[:kk],
+            v_nabla2_diff[:kk],
+        )

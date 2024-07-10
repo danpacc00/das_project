@@ -44,8 +44,8 @@ def create_labeled_dataset(params, M):
 
     offset = 1.5
 
-    D_1 = np.random.uniform(-x_lim - offset, x_lim + offset, size=(M, 1)) # Random x values
-    D_2 = np.random.uniform(-y_lim - offset, y_lim + offset, size=(M, 1)) # Random y values
+    D_1 = np.random.uniform(-x_lim - offset, x_lim + offset, size=(M, 1))  # Random x values
+    D_2 = np.random.uniform(-y_lim - offset, y_lim + offset, size=(M, 1))  # Random y values
 
     D = np.concatenate((D_1, D_2), axis=1)
 
@@ -59,6 +59,7 @@ def create_labeled_dataset(params, M):
 
     return labeled_dataset
 
+
 # Logistic regression cost function for the given dataset
 def cost(theta, points):
     w, bias = theta[:4], theta[4]
@@ -71,6 +72,7 @@ def cost(theta, points):
 
     return cost
 
+
 # Gradient of the logistic regression cost function for the given dataset
 def cost_gradient(theta, points):
     w, bias = theta[:4], theta[4]
@@ -79,17 +81,6 @@ def cost_gradient(theta, points):
         return np.dot(w, phi(x)) + bias
 
     gradient = np.zeros(5)
-    #TODO: Uncomment/remove next lines
-    # for i in range(len(points)):
-    #     x = points[i, :2]
-    #     p = points[i, 2]
-
-    #     gradient[0] += -p * x[0] * np.exp(-p * sep_fn(x)) / (1 + np.exp(-p * sep_fn(x)))
-    #     gradient[1] += -p * x[1] * np.exp(-p * sep_fn(x)) / (1 + np.exp(-p * sep_fn(x)))
-    #     gradient[2] += -p * x[0] ** 2 * np.exp(-p * sep_fn(x)) / (1 + np.exp(-p * sep_fn(x)))
-    #     gradient[3] += -p * x[1] ** 2 * np.exp(-p * sep_fn(x)) / (1 + np.exp(-p * sep_fn(x)))
-    #     gradient[4] += -p * np.exp(-p * sep_fn(x)) / (1 + np.exp(-p * sep_fn(x)))
-
     for i in range(len(points)):
         x = points[i, :2]
         p = points[i, 2]

@@ -24,7 +24,7 @@ LAUNCH_ARGS_TYPES = {
 LAUNCH_ARGS = [
     DeclareLaunchArgument("nodes", default_value="4"),
     DeclareLaunchArgument("timer_period", default_value="0.01"),
-    DeclareLaunchArgument("max_iters", default_value="10000"),
+    DeclareLaunchArgument("max_iters", default_value="40000"),
     DeclareLaunchArgument("case", default_value="0"),  # 0 standard case, 1, 2, 3 different initial positions
 ]
 

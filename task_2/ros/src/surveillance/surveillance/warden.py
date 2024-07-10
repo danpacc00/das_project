@@ -13,9 +13,10 @@ DEFAULT_TIMER_PERIOD = 2  # seconds
 DEFAULT_ALPHA = 1e-2  # stepsize
 DEFAULT_COST_TYPE = "corridor"
 
-# ROS2 node that implements an agent that tries to reach a target position 
+# ROS2 node that implements an agent that tries to reach a target position
 # while keeping a tight formation with its neighbors and eventually avoiding
 # collision with a corridor.
+
 
 class Warden(Node):
     def __init__(self):
@@ -49,7 +50,7 @@ class Warden(Node):
         self._publisher = self.create_publisher(NodeData, f"/warden_{self.id}", 10)
         self._plotter_pub = self.create_publisher(PlotterData, "/plotter", 10)
         self._timer = self.create_timer(self.timer_period, self._timer_callback)
-        self._simtime = 0 # simulation time (equivalent of the iteration number in the python version)
+        self._simtime = 0  # simulation time (equivalent of the iteration number in the python version)
         self._data = []
         self._phi_fn = Identity()
         if self.cost_type == "surveillance":
@@ -95,6 +96,7 @@ class Warden(Node):
             data.warden_id = self.id
             data.time = self._simtime
             data.ss = [float(self._ss[self.id][0][0]), float(self._ss[self.id][0][1])]
+            data.vv = [float(self._vv[self.id][0][0]), float(self._vv[self.id][0][1])]
             data.zz = [float(self._zz[0][0]), float(self._zz[0][1])]
             data.cost = 0.0
             data.grad = [0.0, 0.0]
@@ -112,7 +114,7 @@ class Warden(Node):
 
         # Update the estimates and publish the data to the other nodes
         self._debug(f"All neighbors have responded. Updating estimates for time {self._simtime}...")
-        cost, grad = self._update()
+        cost, grad, li_nabla_2 = self._update()
         msg.ss = [self._ss[self.id][self._simtime][0], self._ss[self.id][self._simtime][1]]
         msg.vv = [self._vv[self.id][self._simtime][0], self._vv[self.id][self._simtime][1]]
         self._publisher.publish(msg)
@@ -122,9 +124,11 @@ class Warden(Node):
         data.warden_id = self.id
         data.time = self._simtime
         data.ss = [float(self._ss[self.id][self._simtime][0]), float(self._ss[self.id][self._simtime][1])]
+        data.vv = [float(self._vv[self.id][self._simtime][0]), float(self._vv[self.id][self._simtime][1])]
         data.zz = [float(self._zz[self._simtime][0]), float(self._zz[self._simtime][1])]
         data.cost = cost
-        data.grad = [float(grad[0]), float(grad[1])]
+        data.grad = [float(grad[0]), float(grad[1]), float(grad[2]), float(grad[3])]
+        data.nabla_2 = [float(li_nabla_2[0]), float(li_nabla_2[1])]
         self._plotter_pub.publish(data)
         self._debug(f"Published data for plotter (#{self._simtime})")
 
@@ -164,8 +168,8 @@ class Warden(Node):
         )
 
         cost, li_nabla_1, li_nabla_2 = self._cost_fn(self.target_position, self._zz[kk], self._ss[ii][kk])
-        total_grad = li_nabla_1 + li_nabla_2 #TODO: fix this
-        return cost, total_grad
+        total_grad = np.concatenate((li_nabla_1, li_nabla_2))
+        return cost, total_grad, li_nabla_2
 
     def _debug(self, msg):
         self.get_logger().debug(f"[{self.id}] {msg}")
