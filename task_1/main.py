@@ -45,7 +45,7 @@ def main():
             cost_fn = QuadraticCost(args.nodes, d=dim)
             gt = GradientTracking(cost_fn, max_iters=args.iters, alpha=1e-2)
 
-            zz, cost, gradient_magnitude = gt.run(graph, d=dim, zz0=zz0.copy())
+            zz, cost, gradient_magnitude, _ = gt.run(graph, d=dim, zz0=zz0.copy())
             print("Optimal value: ", cost_fn.optimal())
 
             if not args.no_plots:
@@ -90,8 +90,8 @@ def main():
 
     # Classification cases
     params_list = [
+        {"values": np.array((1.0, 2.0, 1.0, 2.5, 1)), "stepsize": 1e-2, "max_iters": 1500},  # Horizontal ellipse
         {"values": np.array((1.5, -0.5, 1.5, 0.5, 1.0)), "stepsize": 1e-3, "max_iters": 3500},  # Vertical ellipse
-        {"values": np.array((1.0, 2.0, 1.0, 2.5, 1)), "stepsize": 1e-2, "max_iters": 1500},  # Horizontal ellipse -OK
         {"values": np.array((3.5, 2.0, 1.0, -2.5, 0.5)), "stepsize": 5e-3, "max_iters": 3500},  # Hyperbola
     ]
 
@@ -156,6 +156,15 @@ def main():
                 plt.suptitle(
                     f"Gradient tracking with Logistic Regression Cost Function (graph = Cycle, nodes = {args.nodes}, d = {dimension}, iters = {len(costs)})"
                 )
+                plt.show()
+
+                # plot grad_s_diff in log scale
+                plt.figure(figsize=(10, 10))
+                plt.semilogy(np.arange(zz.shape[0]), grad_s_diff[:, :])
+                plt.grid()
+                plt.title("Convergence of Gradient Tracking")
+                plt.xlabel("Iterations")
+                plt.ylabel("Gradient Difference (logarithmic scale)")
                 plt.show()
 
                 fig, ax = plt.subplots(1, 2, figsize=(20, 10))

@@ -17,7 +17,7 @@ class GradientTracking:
 
         AA = np.zeros(shape=(nn, nn))
 
-        grad_s_diff = np.zeros((self.max_iters, nn, d))
+        grad_s_diff = np.zeros((self.max_iters, nn))
 
         # Metropolis-Hastings weights in order to have a doubly stochastic matrix
         for ii in range(nn):
@@ -60,7 +60,7 @@ class GradientTracking:
 
             self.gradient_magnitude[kk] += np.linalg.norm(grad)
 
-            grad_s_diff[kk, :, :] = np.linalg.norm(ss[kk, :, :] - grad)
+            grad_s_diff[kk, :] = np.linalg.norm(ss[kk, :, :] - grad)
 
             print(f"Iteration: #{kk}, Cost: {self.cost[kk]:.2f}, Gradient Magnitude: {self.gradient_magnitude[kk]:.2f}")
 
@@ -68,4 +68,4 @@ class GradientTracking:
                 print("Converged")
                 break
 
-        return zz[:kk, :, :], self.cost[:kk], self.gradient_magnitude[:kk], grad_s_diff[:kk, :, :]
+        return zz[:kk, :, :], self.cost[:kk], self.gradient_magnitude[:kk], grad_s_diff[:kk, :]
