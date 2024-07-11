@@ -143,7 +143,7 @@ def main():
             gt = GradientTracking(cost_fn, max_iters=params["max_iters"], alpha=params["stepsize"])
 
             graph = nx.cycle_graph(args.nodes)
-            zz, costs, gradient_magnitude = gt.run(graph, d=dimension, zz0=initial_theta)
+            zz, costs, gradient_magnitude, grad_s_diff = gt.run(graph, d=dimension, zz0=initial_theta)
 
             if not args.no_plots:
                 fig, ax = plt.subplots(1, 2, figsize=(20, 10))

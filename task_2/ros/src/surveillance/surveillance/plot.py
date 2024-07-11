@@ -49,7 +49,7 @@ def convergence(diff_barycenter_s, v_nabla2_diff):
 
     ax[1].semilogy(np.arange(v_nabla2_diff.shape[0]), v_nabla2_diff)
     ax[1].grid()
-    ax[1].set_title("Difference between $\\nabla_2\\ell(z, \\sigma(z))$ of the cost and vv (estimation)")
+    ax[1].set_title("Difference between $\\nabla_2\\ell(z, \\sigma(z))$ and vv (estimation)")
     ax[1].set_xlabel("Iterations")
     ax[1].set_ylabel("$\\nabla_2\\ell(z, \\sigma(z))$ - vv (log scale)")
 

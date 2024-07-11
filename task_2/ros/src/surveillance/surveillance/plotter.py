@@ -140,7 +140,7 @@ class Plotter(Node):
 
         plot.convergence(diff_barycenter_s, v_nabla2_diff)
 
-        plot.cost_gradient(self._cost[: kk - 1], self._grad[1:kk], title_suffix=f"($\\gamma = {self.tradeoff}$)")
+        plot.cost_gradient(self._cost[: kk - 1], self._grad[1:kk], title_suffix="")
 
         plot.trajectories(
             zz,
