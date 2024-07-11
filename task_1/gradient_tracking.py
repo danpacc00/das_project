@@ -60,7 +60,8 @@ class GradientTracking:
 
             self.gradient_magnitude[kk] += np.linalg.norm(grad)
 
-            grad_s_diff[kk, :] = np.linalg.norm(ss[kk, :, :] - grad)
+            for jj in range(nn):
+                grad_s_diff[kk, jj] = np.linalg.norm(ss[kk, jj, :] - grad, axis=0)
 
             print(f"Iteration: #{kk}, Cost: {self.cost[kk]:.2f}, Gradient Magnitude: {self.gradient_magnitude[kk]:.2f}")
 

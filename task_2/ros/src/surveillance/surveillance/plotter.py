@@ -9,6 +9,7 @@ import surveillance.plot as plot
 from surveillance.functions import corridor_animation, simple_animation
 
 DEFAULT_TIMER_PERIOD = 2  # seconds
+DEFAULT_ALPHA = 1e-2  # stepsize
 
 
 class Plotter(Node):
@@ -29,6 +30,7 @@ class Plotter(Node):
         self.max_iters = self.get_parameter("max_iters").value
         self.cost_type = self.get_parameter("cost_type").value
         self.tradeoff = self.get_parameter("tradeoff").value
+        self.alpha = self.get_parameter("alpha").value or DEFAULT_ALPHA
 
         self._debug("Start animation")
         self._sub = self.create_subscription(PlotterData, "/plotter", self._node_callback, 10)
@@ -146,8 +148,8 @@ class Plotter(Node):
             zz,
             self.targets,
             self.zz_init,
-            0,
-            self.tradeoff,
+            2,
+            self.alpha,
             additional_elements=[lambda: plot.corridor(top_wall, bottom_wall, y_offset, x, g_1, g_2)],
         )
 

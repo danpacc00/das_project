@@ -72,7 +72,7 @@ def trajectories(zz, targets, zz_init, case, tradeoff, additional_elements=[]):
         plt.annotate(
             f"$z_{jj}^0$",
             xy=(zz[0, jj, 0], zz[0, jj, 1]),
-            xytext=(zz[0, jj, 0] + 0.2, zz[0, jj, 1] + 0.2),
+            xytext=(zz[0, jj, 0] + 0.5, zz[0, jj, 1] + 0.5),
             fontsize=12,
             bbox=dict(boxstyle="round,pad=0.2", facecolor="white", edgecolor="red"),
         )
@@ -82,8 +82,10 @@ def trajectories(zz, targets, zz_init, case, tradeoff, additional_elements=[]):
 
         if case == 0:
             label_offsets = [(0.2, 0.2), (-0.2, -0.7), (-0.8, -0.7), (0.2, -0.2)]
-        else:
+        elif case == 1:
             label_offsets = [(0.1, 0.2), (0.1, 0.2), (-0.55, -0.35), (-0.55, -0.35)]
+        elif case == 2:
+            label_offsets = [(-10.5, -3.4), (-0.5, -3.2), (0.5, -3.5), (1.5, -0.35)]
 
         plt.annotate(
             f"Target {jj}",

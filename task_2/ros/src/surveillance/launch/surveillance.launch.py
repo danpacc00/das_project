@@ -5,7 +5,7 @@ from launch.actions import DeclareLaunchArgument, OpaqueFunction
 from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
 
-np.random.seed(0)
+np.random.seed(1)
 
 LAUNCH_ARGS_NAMES = [
     "nodes",
@@ -50,8 +50,19 @@ def launch_setup(context):
 
     AA += np.eye(args["nodes"]) - np.diag(np.sum(AA, axis=0))
 
-    targets = np.random.rand(args["nodes"], 2) * 10 + args["distance"] / 2
-    zz_init = np.random.rand(args["nodes"], 2) * 10 - args["distance"] / 2
+    targets = np.array(
+        (
+            np.random.rand(args["nodes"]) * 10 + args["distance"] / 2,
+            np.random.rand(args["nodes"]) * 50 - args["distance"] / 2,
+        )
+    ).T
+
+    zz_init = np.array(
+        (
+            np.random.rand(args["nodes"]) * 10 - args["distance"] / 2,
+            np.random.rand(args["nodes"]) * 50 + args["distance"] / 2,
+        )
+    ).T
 
     plotter_node = Node(
         package="surveillance",
